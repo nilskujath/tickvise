@@ -1,0 +1,151 @@
+/*
+General styling overrides for Material for MkDocs.
+*/
+
+
+/* —————————————————————————————————————————————————————————————————————————————————————
+TYPOGRAPHY
+*/
+
+.md-typeset {
+    font-size: 16px;
+}
+
+p {
+    text-align: justify;
+    text-justify: inter-word;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+}
+
+
+/* —————————————————————————————————————————————————————————————————————————————————————
+CODE BLOCKS
+*/
+
+code, pre {
+    tab-size: 4;
+    white-space: pre;
+}
+
+
+/* —————————————————————————————————————————————————————————————————————————————————————
+MERMAID DIAGRAMS
+*/
+
+.mermaid {
+    text-align: center;
+    margin: 0 auto;
+    display: block;
+}
+
+
+/* —————————————————————————————————————————————————————————————————————————————————————
+LIGHT/DARK IMAGE SWAPPING
+
+Some images (e.g. charts) need a different (light/dark) version per theme. Both are
+placed in the markdown; CSS will then hide the one that is not needed:
+
+```
+<div class="image-grid-light">
+    <img src="chart-light.png">
+</div>
+<div class="image-grid-dark">
+    <img src="chart-dark.png">
+</div>
+```
+*/
+
+[data-md-color-scheme="default"] .image-grid-light {
+    display: grid;
+}
+[data-md-color-scheme="default"] .image-grid-dark {
+    display: none !important;
+    margin: 0 !important;
+    height: 0 !important;
+}
+
+[data-md-color-scheme="slate"] .image-grid-light {
+    display: none !important;
+    margin: 0 !important;
+    height: 0 !important;
+}
+[data-md-color-scheme="slate"] .image-grid-dark {
+    display: grid;
+}
+
+
+/* —————————————————————————————————————————————————————————————————————————————————————
+PYCHARM-LIKE DARK SYNTAX HIGHLIGHTING
+
+The goal is to have a pycharm-like syntax highlighting. Material's default light
+Pygments theme is acceptable as-is. The dark theme diverges from PyCharm style
+significantly, so we override it here to keep code blocks consistent.
+*/
+
+/* Keywords: orange */
+[data-md-color-scheme="slate"] .highlight .k,
+[data-md-color-scheme="slate"] .highlight .kc,
+[data-md-color-scheme="slate"] .highlight .kd,
+[data-md-color-scheme="slate"] .highlight .kn,
+[data-md-color-scheme="slate"] .highlight .kp,
+[data-md-color-scheme="slate"] .highlight .kr,
+[data-md-color-scheme="slate"] .highlight .kt,
+[data-md-color-scheme="slate"] .highlight .ow {color: #CF8E6D;}
+
+/* Strings: green */
+[data-md-color-scheme="slate"] .highlight .s,
+[data-md-color-scheme="slate"] .highlight .s1,
+[data-md-color-scheme="slate"] .highlight .s2,
+[data-md-color-scheme="slate"] .highlight .sb,
+[data-md-color-scheme="slate"] .highlight .sc,
+[data-md-color-scheme="slate"] .highlight .sd,
+[data-md-color-scheme="slate"] .highlight .se,
+[data-md-color-scheme="slate"] .highlight .sh,
+[data-md-color-scheme="slate"] .highlight .si,
+[data-md-color-scheme="slate"] .highlight .sx,
+[data-md-color-scheme="slate"] .highlight .sr,
+[data-md-color-scheme="slate"] .highlight .ss {color: #6AAB73;}
+
+/* Numbers: teal */
+[data-md-color-scheme="slate"] .highlight .m,
+[data-md-color-scheme="slate"] .highlight .mb,
+[data-md-color-scheme="slate"] .highlight .mf,
+[data-md-color-scheme="slate"] .highlight .mh,
+[data-md-color-scheme="slate"] .highlight .mi,
+[data-md-color-scheme="slate"] .highlight .mo,
+[data-md-color-scheme="slate"] .highlight .il {color: #2AACB8;}
+
+/* Comments: gray italic */
+[data-md-color-scheme="slate"] .highlight .c,
+[data-md-color-scheme="slate"] .highlight .c1,
+[data-md-color-scheme="slate"] .highlight .cm,
+[data-md-color-scheme="slate"] .highlight .cp,
+[data-md-color-scheme="slate"] .highlight .cs,
+[data-md-color-scheme="slate"] .highlight .ch {color: #7A7E85; font-style: italic;}
+
+/* Functions: blue */
+[data-md-color-scheme="slate"] .highlight .nf,
+[data-md-color-scheme="slate"] .highlight .fm {color: #56A8F5;}
+
+/* Decorators: yellow */
+[data-md-color-scheme="slate"] .highlight .nd {color: #BBB529;}
+
+/* Builtins: purple */
+[data-md-color-scheme="slate"] .highlight .nb,
+[data-md-color-scheme="slate"] .highlight .bp {color: #C77DBB;}
+
+/* Names, operators, punctuation: light gray */
+[data-md-color-scheme="slate"] .highlight .n,
+[data-md-color-scheme="slate"] .highlight .na,
+[data-md-color-scheme="slate"] .highlight .nc,
+[data-md-color-scheme="slate"] .highlight .nn,
+[data-md-color-scheme="slate"] .highlight .nv,
+[data-md-color-scheme="slate"] .highlight .no,
+[data-md-color-scheme="slate"] .highlight .ni,
+[data-md-color-scheme="slate"] .highlight .o,
+[data-md-color-scheme="slate"] .highlight .p {color: #BCBEC4;}
+
+/* Keyword arguments: dark orange */
+[data-md-color-scheme="slate"] .highlight .kwarg-name {color: #C77840;}

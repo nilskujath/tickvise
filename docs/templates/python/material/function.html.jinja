@@ -1,0 +1,4 @@
+{%- set is_dataclass_init = function.name == "__init__" and function.parent.is_class and "dataclass" in function.parent.labels -%}
+{%- if not is_dataclass_init -%}
+{% include "_base/function.html.jinja" %}
+{%- endif -%}

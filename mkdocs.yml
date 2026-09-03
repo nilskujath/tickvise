@@ -1,0 +1,153 @@
+# ——————————————————————————————————————————————————————————————————————————————————————
+# SITE METADATA
+
+site_name: TickVise
+site_url: https://www.tickvise.com
+repo_url: https://github.com/NilsKujath/tickvise
+repo_name: nilskujath/tickvise
+
+
+# ——————————————————————————————————————————————————————————————————————————————————————
+# FOOTER CONFIG
+
+extra:
+  generator: false  # removes the "Made with Material for MkDocs" notice
+
+copyright: >-
+  Copyright &copy; 2024-2026 Nils Kujath.<br><br>
+  <div style='text-align: justify; font-size: 0.8em;'>THE INFORMATION PROVIDED IS
+  FOR EDUCATIONAL AND INFORMATIONAL PURPOSES ONLY. IT DOES NOT CONSTITUTE FINANCIAL,
+  INVESTMENT, OR TRADING ADVICE. TRADING INVOLVES SUBSTANTIAL RISK, AND YOU MAY LOSE
+  MORE THAN YOUR INITIAL INVESTMENT.<br><br> THIS SOFTWARE AND ITS DOCUMENTATION
+  PAGES ARE PROVIDED "AS IS," WITHOUT ANY WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+  BUT NOT LIMITED TO MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS
+  AND COPYRIGHT HOLDERS ASSUME NO LIABILITY FOR ANY CLAIMS, DAMAGES, OR OTHER
+  LIABILITIES ARISING FROM THE USE OR DISTRIBUTION OF THIS SOFTWARE OR DOCUMENTATION
+  PAGES. USE AT YOUR OWN RISK. TICKVISE AND ITS DOCUMENTATION PAGES ARE LICENSED
+  UNDER THE <a href='https://www.gnu.org/licenses/gpl-3.0.html'>GNU GENERAL PUBLIC
+  LICENSE V3.0 (GPL-3.0)</a>. SEE THE GPL-3.0 LICENSE FOR DETAILS.</div>
+
+
+# ——————————————————————————————————————————————————————————————————————————————————————
+# SITE NAVIGATION
+
+nav:
+- Home: index.md
+- Reference:
+  - Overview: reference/overview.md
+  - Domain:
+    - Events: reference/domain/events.md
+    - Types: reference/domain/types.md
+  - Messaging:
+    - Eventbus: reference/messaging/eventbus.md
+    - Subscriber: reference/messaging/subscriber.md
+  - Utils:
+    - Post Init Hook: reference/utils/post_init_hook.md
+- Contributing:
+  - CI/CD Workflow: contributing/cicd_workflow.md
+
+
+# ——————————————————————————————————————————————————————————————————————————————————————
+# THEME CONFIG
+
+theme:
+  name: material
+  icon:
+    logo: material/book-open-page-variant-outline
+
+  # Three-way palette toggle: system -> light -> dark
+  palette:
+  - media: (prefers-color-scheme)
+    toggle:
+      icon: material/lightbulb-auto-outline
+      name: Switch to light mode
+  - media: '(prefers-color-scheme: light)'
+    scheme: default
+    primary: white
+    toggle:
+      icon: material/theme-light-dark
+      name: Switch to dark mode
+  - media: '(prefers-color-scheme: dark)'
+    scheme: slate
+    primary: black
+    toggle:
+      icon: material/theme-light-dark
+      name: Switch to system preference
+
+  features:
+  - navigation.tabs            # top-level sections as tabs
+  - navigation.top             # back-to-top button
+  - content.code.copy          # copy button on code blocks
+  - content.code.select        # line selection in code blocks
+  - content.code.annotate      # inline code annotations
+  - content.footnote.tooltips  # footnotes as hover tooltips
+  - content.tabs.linked        # sync content tabs across page
+
+
+# ——————————————————————————————————————————————————————————————————————————————————————
+# PLUGINS
+
+plugins:
+- search
+- glightbox  # Fullscreen image lightbox on click
+- mkdocstrings:
+    custom_templates: docs/templates
+    handlers:
+      python:
+        options:
+          docstring_style: google
+          members_order: source       # keeps methods in source-file order
+          show_if_no_docstring: true  # shows undocumented members
+          filters: []                 # shows private _-prefixed members
+
+
+# ——————————————————————————————————————————————————————————————————————————————————————
+# MARKDOWN EXTENSIONS
+
+markdown_extensions:
+
+- pymdownx.superfences:
+    custom_fences:  # mermaid diagram support config
+    - name: mermaid
+      class: mermaid
+      format: !!python/name:pymdownx.superfences.fence_code_format ''
+
+- pymdownx.tabbed:
+    alternate_style: true  # `true` necessary for content tabs to be rendered correctly
+
+- admonition
+- pymdownx.details  # for collapsible admonitions
+- attr_list         # HTML attributes on Markdown elements
+- md_in_html        # markdown inside HTML blocks
+
+# Icons and emojis via :icon-name: syntax (e.g. :material-check:)
+- pymdownx.emoji:
+    emoji_index: !!python/name:material.extensions.emoji.twemoji ''
+    emoji_generator: !!python/name:material.extensions.emoji.to_svg ''
+
+# Code integration/syntax highlighting
+- pymdownx.highlight:
+    anchor_linenums: true      # Line numbers become clickable links
+    line_spans: __span         # Wraps each line in a span for CSS targeting
+    pygments_lang_class: true  # Adds language as CSS class (e.g. language-python)
+- pymdownx.inlinehilite        # Syntax highlighting inside inline code
+- pymdownx.snippets            # include content from other files
+
+# LaTeX math rendering (requires MathJax in extra_javascript)
+- pymdownx.arithmatex:
+    generic: true
+
+- footnotes  # for [^1] style footnotes
+
+
+# ——————————————————————————————————————————————————————————————————————————————————————
+# ADDITIONAL JAVASCRIPT AND CSS
+
+extra_javascript:
+- javascripts/mathjax.js
+- javascripts/source_display.js
+- https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+- stylesheets/extra.css
+- stylesheets/mkdocstrings.css

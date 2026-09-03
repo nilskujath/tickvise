@@ -1,0 +1,43 @@
+{% extends "_base/class.html.jinja" %}
+
+{% set ns = namespace(is_namespace_class=false) %}
+
+{% set ns2 = namespace(has_non_dataclass_children=false, has_children=false) %}
+{% for child_name, child in class.classes.items() %}
+{% set ns2.has_children = true %}
+{% if "dataclass" not in child.labels %}
+{% set ns2.has_non_dataclass_children = true %}
+{% endif %}
+{% endfor %}
+
+{% if ns2.has_children and not ns2.has_non_dataclass_children %}
+{% set ns.is_namespace_class = true %}
+{% endif %}
+
+{% block bases scoped %}
+{{ super() }}
+{% if class.keywords and "metaclass" in class.keywords %}
+<p>Metaclass: <code>{{ class.keywords["metaclass"] }}</code></p>
+{% endif %}
+{% endblock bases %}
+
+{% block source %}
+{% if ns.is_namespace_class %}
+  {# Hide source — children are shown individually below #}
+{% else %}
+  {% set ns3 = namespace(has_user_methods=false) %}
+  {% for func_name in class.functions %}
+    {% if func_name not in ("__init__", "__repr__", "__str__", "__eq__", "__hash__", "__post_init__") %}
+      {% set ns3.has_user_methods = true %}
+    {% endif %}
+  {% endfor %}
+
+  {% if not ns3.has_user_methods %}
+    {{ super() }}
+  {% endif %}
+{% endif %}
+{% endblock source %}
+
+{% block children scoped %}
+{{ super() }}
+{% endblock children %}
