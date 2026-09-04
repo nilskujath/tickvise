@@ -1,4 +1,4 @@
-# Post Init Hook
+# post_init_hook.py
 
 ::: tickvise.utils.post_init_hook
     options:

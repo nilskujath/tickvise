@@ -1,6 +1,6 @@
-# eventbus.py
+# pickle_recorder.py
 
-::: tickvise.messaging.eventbus
+::: tickvise.recorders.pickle_recorder
     options:
       show_root_heading: False
       show_source: true

@@ -21,9 +21,15 @@ class EventMessageBase:
     timestamp: UnixNs = field(default_factory=time_ns)
 
 
+class DomainEvents:
+    """
+    Namespace class for domain-related event messages.
+    """
+
+
 class SystemEvents:
     """
-    Namespace class for system-level event messages
+    Namespace class for system-level event messages.
     """
 
     @dataclass(frozen=True, kw_only=True)

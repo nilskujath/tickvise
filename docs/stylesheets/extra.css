@@ -149,3 +149,14 @@ significantly, so we override it here to keep code blocks consistent.
 
 /* Keyword arguments: dark orange */
 [data-md-color-scheme="slate"] .highlight .kwarg-name {color: #C77840;}
+
+
+/* Hide empty placeholder cards in grid */
+.grid.cards > ul > li:empty,
+.grid.cards > ul > li:has(> :only-child:empty) {
+  visibility: hidden;
+  height: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+}

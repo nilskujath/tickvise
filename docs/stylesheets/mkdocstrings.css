@@ -83,3 +83,18 @@ Adds visual separation between documented members (classes, functions, methods).
   padding-bottom: 0.5em;
   border-bottom: 1px solid rgba(128, 128, 128, 0.3);
 }
+
+
+/* —————————————————————————————————————————————————————————————————————————————————————
+CLASS ATTRIBUTE DISPLAY
+
+Hide the inline value and labels for class attributes — the source code block
+shows the full assignment instead.
+*/
+
+
+/* Hide the value assignment in class attribute headings (= ...) */
+.doc-attribute .doc-heading .highlight .o,
+.doc-attribute .doc-heading .highlight .o ~ * {
+  display: none;
+}

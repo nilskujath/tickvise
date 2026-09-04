@@ -1,6 +1,6 @@
-# eventbus.py
+# base.py
 
-::: tickvise.messaging.eventbus
+::: tickvise.recorders.base
     options:
       show_root_heading: False
       show_source: true

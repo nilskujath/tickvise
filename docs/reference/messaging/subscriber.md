@@ -1,4 +1,4 @@
-# Subscriber
+# subscriber.py
 
 ::: tickvise.messaging.subscriber
     options:

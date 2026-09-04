@@ -1,4 +1,4 @@
-# Events
+# events.py
 
 ::: tickvise.domain.events
     options:

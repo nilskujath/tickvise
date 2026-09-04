@@ -120,6 +120,15 @@ document$.subscribe(() => {
     hideDocstringLines(details);
   });
 
+  // Strip class attribute headings to just the name (removes = value and whitespace)
+  document.querySelectorAll('.doc-attribute .doc-heading code.highlight').forEach(code => {
+    const nameSpan = code.querySelector('.n');
+    if (nameSpan) {
+      code.textContent = '';
+      code.appendChild(nameSpan);
+    }
+  });
+
   // Highlight keyword argument names in all code blocks on the page
   highlightKeywordArgs(document);
 });

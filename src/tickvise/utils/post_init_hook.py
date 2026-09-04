@@ -8,7 +8,7 @@ that depends on state set up by its subclasses further down the `__init__` chain
 from abc import ABC, abstractmethod, ABCMeta
 
 
-class PostInitHookMeta(ABCMeta):
+class _PostInitHookMeta(ABCMeta):
     """
     Metaclass that, upon instantiation of a class that uses it, calls `_post_init_hook`
     on the newly created instance after the entire `__init__` chain has completed.
@@ -37,7 +37,7 @@ class PostInitHookMeta(ABCMeta):
         return instance
 
 
-class HasPostInitHook(ABC, metaclass=PostInitHookMeta):
+class HasPostInitHook(ABC, metaclass=_PostInitHookMeta):
     """
     Base class for classes that need a hook called after the entire `__init__`
     chain has completed.

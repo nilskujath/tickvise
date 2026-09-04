@@ -5,6 +5,9 @@ from pathlib import Path
 
 from ruamel.yaml import YAML
 
+SPECIAL_PURPOSE_PACKAGES: set[str] = {"utils"}
+
+
 # ——————————————————————————————————————————————————————————————————————————————————————
 # SETUP
 
@@ -18,6 +21,9 @@ SRC_PATH = Path(f"src/{SRC_PACKAGE}")
 DOCS_PATH = Path("docs/reference")
 MKDOCS_PATH = Path("mkdocs.yml")
 
+NAV_SECTION = "Reference"
+NAV_OVERVIEW = "Package Structure"
+
 yaml = YAML()
 yaml.preserve_quotes = True
 
@@ -27,18 +33,13 @@ yaml.preserve_quotes = True
 
 
 def format_module_title(module_name: str) -> str:
-    """Format module name into a title with correct capitalization.
+    """Format module name as a file reference."""
+    return f"{module_name}.py"
 
-    Handles special cases like 'ib' -> 'IB', 'mt5' -> 'MT5', 'csv' -> 'CSV'.
-    """
-    title = module_name.replace("_", " ").title()
-    for lower, upper in [("Ib", "IB"), ("Mt5", "MT5"), ("Csv", "CSV")]:
-        title = title.replace(f" {lower} ", f" {upper} ")
-        title = title.replace(f" {lower}", f" {upper}")
-        title = title.replace(f"{lower} ", f"{upper} ")
-        if title == lower or title.startswith(lower):
-            title = title.replace(lower, upper, 1)
-    return title
+
+def format_package_title(package_name: str) -> str:
+    """Format package name as a dotted prefix."""
+    return f".{package_name}"
 
 
 def discover_package_structure(package_dir: Path, module_prefix: str) -> dict:
@@ -182,50 +183,95 @@ def build_nav_recursive(structure: dict, docs_prefix: str) -> list:
             structure["subpackages"][subpkg_name], f"{docs_prefix}/{subpkg_name}"
         )
         if subpkg_nav:
-            title = format_module_title(subpkg_name)
+            title = format_package_title(subpkg_name)
             nav_items.append({title: subpkg_nav})
 
     return nav_items
+
+
+def _overview_card(
+    module: str, submodules: list[str], submodule_structure: dict
+) -> str:
+    """Generate a single overview card for a module or package."""
+    docstring = get_module_docstring(module, submodules)
+
+    if module in submodules:
+        title = format_package_title(module)
+        structure = submodule_structure.get(module)
+        if not structure:
+            return ""
+        link_target = find_first_file_path(structure, module)
+        if not link_target:
+            return ""
+        link_text = f"View `{module}` package API"
+    else:
+        title = format_module_title(module)
+        link_target = f"{module}.md"
+        link_text = f"View `{module}.py` API"
+
+    card = f"-   __{title}__&nbsp;&nbsp;\n\n    ---\n\n"
+    if docstring:
+        indented = "\n    ".join(docstring.split("\n"))
+        card += f"    {indented}\n\n"
+    card += f"    [:material-link-variant: {link_text}]({link_target})\n\n"
+    return card
 
 
 def generate_overview(
     modules: list[str], submodules: list[str], submodule_structure: dict
 ) -> str:
     """Generate the overview page with navigation cards."""
+
+    main_packages = [
+        m
+        for m in sorted(modules)
+        if m in submodules and m not in SPECIAL_PURPOSE_PACKAGES
+    ]
+    special_packages = [
+        m for m in sorted(modules) if m in submodules and m in SPECIAL_PURPOSE_PACKAGES
+    ]
+    standalone_modules = [m for m in sorted(modules) if m not in submodules]
+
     content = """---
 hide:
 #  - navigation
 #  - toc
 ---
 
-# Reference
+# Package Structure
+
+## Main Namespaces
+
+Namespaces needed for building and operating the trading infrastructure.
 
 <div class="grid cards" markdown>
 
 """
-    for module in sorted(modules):
-        title = format_module_title(module)
-        docstring = get_module_docstring(module, submodules)
+    for module in main_packages:
+        content += _overview_card(module, submodules, submodule_structure)
 
-        if module in submodules:
-            structure = submodule_structure.get(module)
-            if not structure:
-                continue
-            link_target = find_first_file_path(structure, module)
-            if not link_target:
-                continue
-            link_text = f"View `{module}` package API"
-        else:
-            link_target = f"{module}.md"
-            link_text = f"View `{module}.py` API"
+    for module in standalone_modules:
+        content += _overview_card(module, submodules, submodule_structure)
 
-        content += f"-   __{title}__&nbsp;&nbsp;\n\n    ---\n\n"
-        if docstring:
-            indented = "\n    ".join(docstring.split("\n"))
-            content += f"    {indented}\n\n"
-        content += f"    [:material-link-variant: {link_text}]({link_target})\n\n"
+    content += "</div>\n\n"
 
-    content += "</div>\n"
+    if special_packages:
+        content += """## Special-Purpose Namespaces 
+
+Namespaces containing internal plumbing that usually does not need to be touched during 
+regular operation. 
+
+<div class="grid cards" markdown>
+
+"""
+        for module in special_packages:
+            content += _overview_card(module, submodules, submodule_structure)
+
+        if len(special_packages) == 1:
+            content += "-   &nbsp;\n    { .card-placeholder }\n\n"
+
+        content += "</div>\n"
+
     return content
 
 
@@ -283,35 +329,36 @@ def main() -> None:
 
     # Generate overview page
     overview = generate_overview(modules, submodules, submodule_structure)
-    (DOCS_PATH / "overview.md").write_text(overview)
+    (DOCS_PATH / "package_structure.md").write_text(overview)
     logger.info("Generated overview page")
 
     # Update mkdocs.yml navigation (preserves comments and formatting)
     with open(MKDOCS_PATH) as f:
         config = yaml.load(f)
 
-    ref_nav: list = [{"Overview": "reference/overview.md"}]
+    ref_nav: list = [{NAV_OVERVIEW: "reference/package_structure.md"}]
 
     for module in sorted(modules):
-        title = format_module_title(module)
         if module in submodules and submodule_structure.get(module):
+            title = format_package_title(module)
             sub_nav = build_nav_recursive(
                 submodule_structure[module], f"reference/{module}"
             )
             if sub_nav:
                 ref_nav.append({title: sub_nav})
         else:
+            title = format_module_title(module)
             ref_nav.append({title: f"reference/{module}.md"})
 
     replaced = False
     for i, item in enumerate(config["nav"]):
-        if isinstance(item, dict) and "Reference" in item:
-            config["nav"][i] = {"Reference": ref_nav}
+        if isinstance(item, dict) and NAV_SECTION in item:
+            config["nav"][i] = {NAV_SECTION: ref_nav}
             replaced = True
             break
 
     if not replaced:
-        config["nav"].append({"Reference": ref_nav})
+        config["nav"].append({NAV_SECTION: ref_nav})
 
     with open(MKDOCS_PATH, "w") as f:
         yaml.dump(config, f)

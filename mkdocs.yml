@@ -34,21 +34,25 @@ copyright: >-
 nav:
 - Home: index.md
 - Reference:
-  - Overview: reference/overview.md
-  - Domain:
-    - Events: reference/domain/events.md
-    - Types: reference/domain/types.md
-  - Messaging:
-    - Eventbus: reference/messaging/eventbus.md
-    - Subscriber: reference/messaging/subscriber.md
-  - Utils:
-    - Post Init Hook: reference/utils/post_init_hook.md
+  - Package Structure: reference/package_structure.md
+  - .domain:
+    - events.py: reference/domain/events.md
+    - types.py: reference/domain/types.md
+  - .messaging:
+    - eventbus.py: reference/messaging/eventbus.md
+    - subscriber.py: reference/messaging/subscriber.md
+  - .recorders:
+    - base.py: reference/recorders/base.md
+    - pickle_recorder.py: reference/recorders/pickle_recorder.md
+  - .utils:
+    - post_init_hook.py: reference/utils/post_init_hook.md
 - Contributing:
   - CI/CD Workflow: contributing/cicd_workflow.md
 
 
 # ——————————————————————————————————————————————————————————————————————————————————————
 # THEME CONFIG
+
 
 theme:
   name: material

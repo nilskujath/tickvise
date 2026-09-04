@@ -35,6 +35,7 @@ class SubscriberBase(ABC, HasPostInitHook):
     """
 
     SUBSCRIBE_TO: tuple[type[EventMessageBase], ...] = ()  # override to receive events
+    """Override in subclasses to declare which event message types to receive."""
 
     def __init__(self, event_bus: EventBus) -> None:
         """
