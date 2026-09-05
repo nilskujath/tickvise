@@ -27,3 +27,18 @@ class TimeUnit(Enum):
     MINUTE = "MINUTE"
     HOUR = "HOUR"
     DAY = "DAY"
+
+
+class OptionRight(Enum):
+    """
+    Enumeration of option contract rights.
+
+    A `CALL` gives the buyer the right to buy the underlying at the strike price,
+    and obliges the seller to sell at that price if exercised.
+
+    A `PUT` gives the buyer the right to sell the underlying at the strike price,
+    and obliges the seller to buy at that price if exercised.
+    """
+
+    CALL = "CALL"
+    PUT = "PUT"
