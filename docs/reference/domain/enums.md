@@ -1,6 +1,6 @@
-# types.py
+# enums.py
 
-::: tickvise.domain.types
+::: tickvise.domain.enums
     options:
       show_root_heading: False
       show_source: true

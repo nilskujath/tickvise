@@ -1,6 +1,6 @@
-# types.py
+# instruments.py
 
-::: tickvise.domain.types
+::: tickvise.domain.instruments
     options:
       show_root_heading: False
       show_source: true

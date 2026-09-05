@@ -4,15 +4,16 @@ Records all event messages to a pickle file for post-run inspection.
 
 # fmt: off
 import pickle
-from io import BufferedWriter
-from pathlib import Path
+
+from io         import BufferedWriter
+from pathlib    import Path
 # fmt: on
 
 
 # fmt: off
-from ..domain.events import EventMessageBase, DomainEvents, SystemEvents
-from ..messaging.eventbus import EventBus
-from .base import RecorderBase
+from ..domain.events        import EventMessageBase, DomainEvents, SystemEvents
+from ..messaging.eventbus   import EventBus
+from .base                  import RecorderBase
 # fmt: on
 
 

@@ -1,8 +1,12 @@
 {#- Hide pure instance-attribute members (they tend to be noisy/empty in our docs). -#}
 {#- Class attributes (like SUBSCRIBE_TO) are shown even if also labeled instance-attribute. -#}
+{#- Dataclass and NamedTuple fields are already shown in the Parameters section — skip them here. -#}
 {#- For properties and class attributes, show source code like functions do. -#}
 
-{% if "instance-attribute" not in attribute.labels or "class-attribute" in attribute.labels %}
+{% set is_dataclass_field = "class-attribute" in attribute.labels and attribute.parent and "dataclass" in attribute.parent.labels %}
+{% set is_namedtuple_field = "class-attribute" in attribute.labels and attribute.parent and "NamedTuple" in (attribute.parent.bases | map("string") | join(",")) %}
+
+{% if ("instance-attribute" not in attribute.labels or "class-attribute" in attribute.labels) and not is_dataclass_field and not is_namedtuple_field %}
 
 {% import "language.html.jinja" as lang with context %}
 

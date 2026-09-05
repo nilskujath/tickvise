@@ -16,7 +16,7 @@ Namespaces needed for building and operating the trading infrastructure.
 
     ---
 
-    [:material-link-variant: View `domain` package API](domain/events.md)
+    [:material-link-variant: View `domain` package API](domain/enums.md)
 
 -   __.messaging__&nbsp;&nbsp;
 

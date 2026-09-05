@@ -1,6 +1,12 @@
 {% extends "_base/class.html.jinja" %}
 
-{% set ns = namespace(is_namespace_class=false) %}
+{% set ns = namespace(is_namespace_class=false, is_enum=false) %}
+
+{% for base in class.bases %}
+{% if "Enum" in base|string %}
+{% set ns.is_enum = true %}
+{% endif %}
+{% endfor %}
 
 {% set ns2 = namespace(has_non_dataclass_children=false, has_children=false) %}
 {% for child_name, child in class.classes.items() %}
@@ -22,7 +28,9 @@
 {% endblock bases %}
 
 {% block source %}
-{% if ns.is_namespace_class %}
+{% if ns.is_enum %}
+  {{ super() }}
+{% elif ns.is_namespace_class %}
   {# Hide source — children are shown individually below #}
 {% else %}
   {% set ns3 = namespace(has_user_methods=false) %}
@@ -39,5 +47,7 @@
 {% endblock source %}
 
 {% block children scoped %}
+{% if not ns.is_enum %}
 {{ super() }}
+{% endif %}
 {% endblock children %}

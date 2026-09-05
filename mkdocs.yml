@@ -36,7 +36,9 @@ nav:
 - Reference:
   - Package Structure: reference/package_structure.md
   - .domain:
+    - enums.py: reference/domain/enums.md
     - events.py: reference/domain/events.md
+    - instruments.py: reference/domain/instruments.md
     - types.py: reference/domain/types.md
   - .messaging:
     - eventbus.py: reference/messaging/eventbus.md
