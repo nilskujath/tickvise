@@ -35,6 +35,8 @@ nav:
 - Home: index.md
 - Reference:
   - Package Structure: reference/package_structure.md
+  - .datafeeds:
+    - base.py: reference/datafeeds/base.md
   - .domain:
     - enums.py: reference/domain/enums.md
     - events.py: reference/domain/events.md
