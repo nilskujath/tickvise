@@ -35,6 +35,8 @@ nav:
 - Home: index.md
 - Reference:
   - Package Structure: reference/package_structure.md
+  - .brokers:
+    - base.py: reference/brokers/base.md
   - .datafeeds:
     - base.py: reference/datafeeds/base.md
   - .domain:

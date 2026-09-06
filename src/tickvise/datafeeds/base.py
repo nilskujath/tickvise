@@ -37,6 +37,7 @@ class DatafeedConnectorBase(ConnectableSubscriberBase):
         """
         No-op.
         Datafeed connectors only emit events, they do not consume any domain events.
+
         `SystemEvents.ShutdownDecision` is handled by the parent class event loop.
         """
         pass

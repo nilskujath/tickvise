@@ -12,6 +12,12 @@ Namespaces needed for building and operating the trading infrastructure.
 
 <div class="grid cards" markdown>
 
+-   __.brokers__&nbsp;&nbsp;
+
+    ---
+
+    [:material-link-variant: View `brokers` package API](brokers/base.md)
+
 -   __.datafeeds__&nbsp;&nbsp;
 
     ---
