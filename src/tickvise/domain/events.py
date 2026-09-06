@@ -317,6 +317,11 @@ class DomainEvents:
             cost basis of the position, the broker should be configured to include
             commissions and fees in the reported cost basis.
 
+            An order that fills at multiple price levels produces multiple `Fill`
+            events, one per partial execution.
+            Each carries the updated aggregate position state after that particular
+            partial fill.
+
         Parameters:
             timestamp:
                 Timestamp of event creation.

@@ -127,3 +127,50 @@ class BarInterval(NamedTuple):
 
     time_unit: TimeUnit
     multiplier: Multiplier = 1
+
+
+class Position(NamedTuple):
+    """
+    A value type that represents a non-flat position.
+
+    The cost basis follows weighted average accounting: each fill's price is weighted
+    by its quantity to produce a single blended entry price for the position.
+    The alternative would have been to use FIFO (first-in-first-out) accounting, where
+    each unit retains its original entry price and partial exits close the oldest units
+    first.
+    Weighted average was chosen because it requires only a single value instead of a
+    queue of individual lots, it matches how most brokers report cost basis,
+    and it is sufficient for strategies that only need to know the aggregate position's
+    breakeven price rather than the profitability of individual lots (which might be
+    important for strategies that work with partial exits).
+
+    Parameters:
+        size:
+            Signed position size; positive for long, negative for short.
+        cost_basis:
+            Weighted average entry price per unit of the position.
+
+    Implementation Note:
+        A flat position (no position held) is represented by the absence of an entry,
+        not by a position with a size of 0 in the parts of the system concerned with
+        positions.
+
+        Strategies that require lot-level accounting (e.g., for selective partial exits
+        or FIFO-based P&L attribution) can build their own lot tracking from the
+        individual `Fill` events they receive.
+
+        However, lot-level state is not restored on reconnect in our system:
+        While broker APIs may offer recent fill history, this history is usually
+        limited in time range and cannot reliably cover positions held across days or
+        weeks.
+        Rather than providing lot-level state that is silently incomplete, the system
+        restores only the aggregate position, which is always correct and complete.
+        Strategies that rely on lot-level tracking should persist and restore
+        that state independently, taking into account that this makes the system more
+        fragile.
+    """
+
+    # fmt: off
+    size:       SignedPositionSize
+    cost_basis: ScaledPrice
+    # fmt: on
