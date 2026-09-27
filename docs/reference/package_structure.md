@@ -34,7 +34,7 @@ Namespaces needed for building and operating the trading infrastructure.
 
     ---
 
-    [:material-link-variant: View `indicators` package API](indicators/base.md)
+    [:material-link-variant: View `indicators` package API](indicators/bar_fields.md)
 
 -   __.messaging__&nbsp;&nbsp;
 
