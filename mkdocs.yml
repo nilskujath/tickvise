@@ -54,6 +54,8 @@ nav:
   - .recorders:
     - base.py: reference/recorders/base.md
     - pickle_recorder.py: reference/recorders/pickle_recorder.md
+  - .strategies:
+    - base.py: reference/strategies/base.md
   - .utils:
     - post_init_hook.py: reference/utils/post_init_hook.md
 - Contributing:

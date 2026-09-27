@@ -48,6 +48,12 @@ Namespaces needed for building and operating the trading infrastructure.
 
     [:material-link-variant: View `recorders` package API](recorders/base.md)
 
+-   __.strategies__&nbsp;&nbsp;
+
+    ---
+
+    [:material-link-variant: View `strategies` package API](strategies/base.md)
+
 </div>
 
 ## Special-Purpose Namespaces 

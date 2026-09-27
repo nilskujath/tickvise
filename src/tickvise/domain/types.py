@@ -9,6 +9,7 @@ Value types are implemented via named tuple structures.
 
 from datetime import date
 from typing import NamedTuple
+from uuid import UUID
 
 from .enums import TimeUnit
 
@@ -126,6 +127,27 @@ Expiration or last trade date of a derivative contract.
 Example:
     ``ExpirationDate(2025, 9, 19)`` for September 19, 2025.
 """
+
+
+type OrderId = UUID
+"""
+Unique system-internal identifier for an order.
+"""
+
+
+class IndicatorReading(NamedTuple):
+    """
+    A single indicator computation result paired with its scale information.
+
+    Parameters:
+        value:
+            The computed indicator value.
+        is_scaled:
+            `True` if the value is in the same scale as price data.
+    """
+
+    value: IndicatorValue
+    is_scaled: bool
 
 
 class BarInterval(NamedTuple):

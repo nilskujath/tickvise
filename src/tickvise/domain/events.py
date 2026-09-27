@@ -25,6 +25,8 @@ from .types import (
     BarInterval,
     DataSource,
     Volume,
+    IndicatorName,
+    IndicatorReading,
 )
 
 
@@ -105,6 +107,9 @@ class DomainEvents:
             data_source:
                 Origin of the market data (e.g., information about datafeed provider
                 and exchange).
+            is_historical:
+                If `True`, this bar is part of the historical warmup period and should
+                    not trigger trading logic; defaults to `False`.
         """
 
         # fmt: off
@@ -118,6 +123,8 @@ class DomainEvents:
         volume:         Volume
 
         data_source:    DataSource
+
+        is_historical:  bool = False
         # fmt: on
 
     @dataclass(frozen=True, kw_only=True)
@@ -394,3 +401,20 @@ class SystemEvents:
         """
 
         reason: Reason
+
+    @dataclass(frozen=True, kw_only=True)
+    class IndicatorUpdate(EventMessageBase):
+        """
+        Event message carrying the indicator readings computed from a bar.
+
+        Parameters:
+            timestamp:
+                Timestamp of event creation.
+            source_bar:
+                The `NewBar` event these readings were computed from.
+            readings:
+                Mapping of indicator name to its computed reading.
+        """
+
+        source_bar: "DomainEvents.NewBar"
+        readings: dict[IndicatorName, IndicatorReading]
