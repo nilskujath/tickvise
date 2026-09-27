@@ -62,6 +62,12 @@ multiplier).
 """
 
 
+type IndicatorValue = float
+"""
+Scalar result of an indicator computation for a single bar of market data.
+"""
+
+
 type StrikePrice = float
 """
 Strike price of an option contract.
@@ -70,6 +76,15 @@ Implementation Note:
     Stored as `float` because strike prices are user-facing values used for instrument
     identification.
     They will be converted to `ScaledPrice` values internally if needed.
+"""
+
+
+type IndicatorName = str
+"""
+Unique identifier for an indicator instance, ideally including its configuration 
+parameters.
+Used as a dictionary key for indicator registration and lookup (e.g., `"SMA(20)"`, 
+`"RSI(14)"`, `"BollingerUpper(20, 2.0)"`).
 """
 
 

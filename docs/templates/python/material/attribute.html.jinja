@@ -1,7 +1,8 @@
 {#- Hide pure instance-attribute members (they tend to be noisy/empty in our docs). -#}
 {#- Class attributes (like SUBSCRIBE_TO) are shown even if also labeled instance-attribute. -#}
 {#- Dataclass and NamedTuple fields are already shown in the Parameters section — skip them here. -#}
-{#- For properties and class attributes, show source code like functions do. -#}
+{#- Abstract properties are rendered like abstract methods (with sourcecode block). -#}
+{#- Concrete properties show source code in a quote block. -#}
 
 {% set is_dataclass_field = "class-attribute" in attribute.labels and attribute.parent and "dataclass" in attribute.parent.labels %}
 {% set is_namedtuple_field = "class-attribute" in attribute.labels and attribute.parent and "NamedTuple" in (attribute.parent.bases | map("string") | join(",")) %}
@@ -26,16 +27,31 @@
   {% include "_base/attribute.html.jinja" %}
 
   {% if "property" in attribute.labels and config.show_source and attribute.source %}
-  <details class="quote">
-    <summary>{{ lang.t("Source code in") }} <code>
-      {%- if attribute.relative_filepath.is_absolute() -%}
-        {{ attribute.relative_package_filepath }}
-      {%- else -%}
-        {{ attribute.relative_filepath }}
-      {%- endif -%}
-    </code></summary>
-    {{ attribute.source|highlight(language="python", linestart=attribute.lineno or 0, linenums=True) }}
-  </details>
+    {% if "abstractmethod" in attribute.labels %}
+    {#- Abstract properties: use mkdocstrings-source class so JS styles it like methods -#}
+    <details class="mkdocstrings-source">
+      <summary>{{ lang.t("Source code in") }} <code>
+        {%- if attribute.relative_filepath.is_absolute() -%}
+          {{ attribute.relative_package_filepath }}
+        {%- else -%}
+          {{ attribute.relative_filepath }}
+        {%- endif -%}
+      </code></summary>
+      {{ attribute.source|highlight(language="python", linestart=attribute.lineno or 0, linenums=True) }}
+    </details>
+    {% else %}
+    {#- Concrete properties: quote-style source block -#}
+    <details class="quote">
+      <summary>{{ lang.t("Source code in") }} <code>
+        {%- if attribute.relative_filepath.is_absolute() -%}
+          {{ attribute.relative_package_filepath }}
+        {%- else -%}
+          {{ attribute.relative_filepath }}
+        {%- endif -%}
+      </code></summary>
+      {{ attribute.source|highlight(language="python", linestart=attribute.lineno or 0, linenums=True) }}
+    </details>
+    {% endif %}
   {% endif %}
 
 {% endif %}

@@ -30,6 +30,12 @@ Namespaces needed for building and operating the trading infrastructure.
 
     [:material-link-variant: View `domain` package API](domain/enums.md)
 
+-   __.indicators__&nbsp;&nbsp;
+
+    ---
+
+    [:material-link-variant: View `indicators` package API](indicators/base.md)
+
 -   __.messaging__&nbsp;&nbsp;
 
     ---

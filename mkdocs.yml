@@ -44,6 +44,8 @@ nav:
     - events.py: reference/domain/events.md
     - instruments.py: reference/domain/instruments.md
     - types.py: reference/domain/types.md
+  - .indicators:
+    - base.py: reference/indicators/base.md
   - .messaging:
     - eventbus.py: reference/messaging/eventbus.md
     - subscriber.py: reference/messaging/subscriber.md
