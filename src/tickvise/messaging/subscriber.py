@@ -64,6 +64,26 @@ class SubscriberBase(ABC, HasPostInitHook):
         """
         self._event_loop_thread.start()
 
+    @property
+    def is_idle(self) -> bool:
+        """
+        Whether this component is idle. `True` if no events are queued or being
+        processed, `False` otherwise.
+
+        An event is considered in-flight from the moment it is enqueued via `.receive`
+        until the `._on_event` call that processes it has returned and the queue's
+        internal task counter has been decremented.
+        """
+        return self._queue.unfinished_tasks == 0
+
+    def wait_until_idle(self) -> None:
+        """
+        Block until all enqueued events have been fully processed, then returns.
+
+        Returns immediately if the component is already idle.
+        """
+        self._queue.join()
+
     def receive(self, event_message: EventMessageBase) -> None:
         """
         Allows external callers to deliver event messages to this system component.
