@@ -35,6 +35,19 @@ class SubscriberLike(Protocol):
         """
         ...
 
+    @property
+    def is_idle(self) -> bool:
+        """
+        Whether this component has finished processing all delivered events.
+        """
+        ...
+
+    def wait_until_idle(self) -> None:
+        """
+        Block until this component has finished processing all delivered events.
+        """
+        ...
+
 
 class EventBus:
     """

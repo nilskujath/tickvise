@@ -40,7 +40,7 @@ Namespaces needed for building and operating the trading infrastructure.
 
     ---
 
-    [:material-link-variant: View `messaging` package API](messaging/eventbus.md)
+    [:material-link-variant: View `messaging` package API](messaging/backtest_eventbus.md)
 
 -   __.recorders__&nbsp;&nbsp;
 

@@ -50,6 +50,7 @@ nav:
     - base.py: reference/indicators/base.md
     - moving_averages.py: reference/indicators/moving_averages.md
   - .messaging:
+    - backtest_eventbus.py: reference/messaging/backtest_eventbus.md
     - eventbus.py: reference/messaging/eventbus.md
     - subscriber.py: reference/messaging/subscriber.md
   - .recorders:
