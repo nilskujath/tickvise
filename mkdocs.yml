@@ -56,6 +56,7 @@ nav:
     - pickle_recorder.py: reference/recorders/pickle_recorder.md
   - .strategies:
     - base.py: reference/strategies/base.md
+    - example_strategies.py: reference/strategies/example_strategies.md
   - .utils:
     - post_init_hook.py: reference/utils/post_init_hook.md
 - Contributing:
