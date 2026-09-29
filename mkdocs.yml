@@ -41,6 +41,7 @@ nav:
   - .datafeeds:
     - base.py: reference/datafeeds/base.md
   - .domain:
+    - constants.py: reference/domain/constants.md
     - enums.py: reference/domain/enums.md
     - events.py: reference/domain/events.md
     - instruments.py: reference/domain/instruments.md

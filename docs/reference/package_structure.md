@@ -28,7 +28,7 @@ Namespaces needed for building and operating the trading infrastructure.
 
     ---
 
-    [:material-link-variant: View `domain` package API](domain/enums.md)
+    [:material-link-variant: View `domain` package API](domain/constants.md)
 
 -   __.indicators__&nbsp;&nbsp;
 

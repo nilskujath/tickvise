@@ -135,10 +135,16 @@ def generate_module_page(module_prefix: str, file_stem: str, file_path: Path) ->
             f"      show_root_toc_entry: False\n"
         )
     else:
-        parts = [f"# {title}\n"]
-        for line in content.split("\n"):
-            stripped = line.strip()
-            if stripped.startswith("type ") and "=" in stripped:
+        # Check for PEP 695 type aliases
+        type_aliases = [
+            line.strip()
+            for line in content.split("\n")
+            if line.strip().startswith("type ") and "=" in line.strip()
+        ]
+
+        if type_aliases:
+            parts = [f"# {title}\n"]
+            for stripped in type_aliases:
                 name = stripped.split("=")[0].replace("type ", "").strip()
                 parts.append(f"## `{name}`\n")
                 parts.append(f'???+ sourcecode ""')
@@ -147,7 +153,18 @@ def generate_module_page(module_prefix: str, file_stem: str, file_path: Path) ->
                 parts.append(f"    {stripped}")
                 parts.append(f"    ```")
                 parts.append(f"")
-        return "\n".join(parts)
+            return "\n".join(parts)
+        else:
+            return (
+                f"# {title}\n"
+                f"\n"
+                f"::: {module_prefix}.{file_stem}\n"
+                f"    options:\n"
+                f"      show_root_heading: False\n"
+                f"      show_source: true\n"
+                f"      heading_level: 2\n"
+                f"      show_root_toc_entry: False\n"
+            )
 
 
 def generate_docs_recursive(

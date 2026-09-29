@@ -17,7 +17,7 @@ from ..utils.post_init_hook import HasPostInitHook
 # fmt: on
 
 
-class SubscriberBase(ABC, HasPostInitHook):
+class SubscriberBase(HasPostInitHook):
     """
     Abstract base class for system components that react to event messages.
     Implementation of the `SubscriberLike` protocol.
@@ -165,7 +165,7 @@ class SubscriberBase(ABC, HasPostInitHook):
         ...
 
 
-class ConnectableSubscriberBase(ABC, SubscriberBase):
+class ConnectableSubscriberBase(SubscriberBase):
     """
     Abstract base class for system components that react to event messages and
     manage an external connection.
