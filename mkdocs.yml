@@ -37,6 +37,7 @@ nav:
   - Package Structure: reference/package_structure.md
   - .brokers:
     - base.py: reference/brokers/base.md
+    - commissions.py: reference/brokers/commissions.md
     - simulated.py: reference/brokers/simulated.md
   - .datafeeds:
     - base.py: reference/datafeeds/base.md

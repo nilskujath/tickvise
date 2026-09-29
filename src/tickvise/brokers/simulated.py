@@ -8,6 +8,8 @@ incoming bar data and emitting (approximately) the same order lifecycle events t
 live broker connector would produce.
 """
 
+from typing import Callable
+
 from ..domain.enums import TradeSide
 from ..domain.events import DomainEvents, EventMessageBase
 from ..domain.instruments import InstrumentBase
@@ -49,7 +51,12 @@ class SimulatedBrokerConnector(BrokerConnectorBase):
     """
 
     def __init__(
-        self, event_bus: BacktestEventBus, instruments: set[InstrumentBase]
+        self,
+        event_bus: BacktestEventBus,
+        instruments: set[InstrumentBase],
+        commission_model: (
+            Callable[[InstrumentBase, int, ScaledPrice], ScaledPrice] | None
+        ) = None,
     ) -> None:
         """
         Initialize the simulated broker connector.
@@ -63,6 +70,12 @@ class SimulatedBrokerConnector(BrokerConnectorBase):
                     otherwise.
             instruments:
                 Set of instruments managed by this broker connector.
+            commission_model:
+                Optional callable that computes the per-contract commission for a
+                fill, given the instrument, quantity, and fill price.
+                The returned value is in `ScaledPrice` units and is folded into the
+                position's cost basis: added for buys, subtracted for sells.
+                Defaults to zero commission if not provided.
         """
         if not isinstance(event_bus, BacktestEventBus):
             raise TypeError(
@@ -71,9 +84,10 @@ class SimulatedBrokerConnector(BrokerConnectorBase):
             )
 
         # fmt: off
-        self._working_orders: dict[OrderId, DomainEvents.OrderRequest] = {}
-        self._position:       dict[InstrumentBase, SignedPositionSize]  = {}
-        self._cost_basis:     dict[InstrumentBase, ScaledPrice]         = {}
+        self._commission_model = commission_model or (lambda inst, qty, price: 0)
+        self._working_orders:   dict[OrderId, DomainEvents.OrderRequest] = {}
+        self._position:         dict[InstrumentBase, SignedPositionSize]  = {}
+        self._cost_basis:       dict[InstrumentBase, ScaledPrice]         = {}
         # fmt: on
 
         super().__init__(event_bus, instruments)
@@ -275,10 +289,11 @@ class SimulatedBrokerConnector(BrokerConnectorBase):
         """
         Execute a complete fill for the given order at the given price.
 
-        Position state is updated via `_update_position` using weighted average cost
-        basis accounting.
-        The fill price is used directly as the entry price for position accounting
-        (no commission adjustment).
+        Commission is computed via the injected commission model and folded into
+        the effective price used for cost basis accounting: added for buys,
+        subtracted for sells.
+        This matches Interactive Brokers' `avgCost` behavior, where the position's
+        cost basis includes commissions and fees.
 
         Parameters:
             order:
@@ -288,13 +303,20 @@ class SimulatedBrokerConnector(BrokerConnectorBase):
         """
         signed_fill_qty = order.qty if order.trade_side is TradeSide.BUY else -order.qty
 
+        commission = self._commission_model(order.instrument, order.qty, fill_price)
+
+        if order.trade_side is TradeSide.BUY:
+            effective_price = fill_price + commission
+        else:
+            effective_price = fill_price - commission
+
         del self._working_orders[order.order_id]
 
         held = self._update_position(
             self._position.get(order.instrument, 0),
             self._cost_basis.get(order.instrument),
             signed_fill_qty,
-            fill_price,
+            effective_price,
         )
 
         self.emit(
