@@ -4,5 +4,8 @@
 # Python virtual environment
 .venv/
 
+# Pycache
+__pycache__/
+
 # Data
-data/
+market_data/
