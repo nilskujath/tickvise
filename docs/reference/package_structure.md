@@ -59,17 +59,21 @@ Namespaces needed for building and operating the trading infrastructure.
 ## Special-Purpose Namespaces 
 
 Namespaces containing internal plumbing that usually does not need to be touched during 
-regular operation. 
+regular operation as well as some useful tools that might come in handy during the
+strategy development lifecycle. 
 
 <div class="grid cards" markdown>
+
+-   __.data__&nbsp;&nbsp;
+
+    ---
+
+    [:material-link-variant: View `data` package API](data/databento.md)
 
 -   __.utils__&nbsp;&nbsp;
 
     ---
 
     [:material-link-variant: View `utils` package API](utils/post_init_hook.md)
-
--   &nbsp;
-    { .card-placeholder }
 
 </div>

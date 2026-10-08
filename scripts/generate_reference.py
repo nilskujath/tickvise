@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ruamel.yaml import YAML
 
-SPECIAL_PURPOSE_PACKAGES: set[str] = {"utils"}
+SPECIAL_PURPOSE_PACKAGES: set[str] = {"utils", "data"}
 
 
 # ——————————————————————————————————————————————————————————————————————————————————————
@@ -276,7 +276,8 @@ Namespaces needed for building and operating the trading infrastructure.
         content += """## Special-Purpose Namespaces 
 
 Namespaces containing internal plumbing that usually does not need to be touched during 
-regular operation. 
+regular operation as well as some useful tools that might come in handy during the
+strategy development lifecycle. 
 
 <div class="grid cards" markdown>
 
