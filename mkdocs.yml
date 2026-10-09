@@ -39,6 +39,8 @@ nav:
     - base.py: reference/brokers/base.md
     - commissions.py: reference/brokers/commissions.md
     - simulated.py: reference/brokers/simulated.md
+  - .charting:
+    - config.py: reference/charting/config.md
   - .data:
     - databento.py: reference/data/databento.md
   - .datafeeds:

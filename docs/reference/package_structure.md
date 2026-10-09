@@ -64,6 +64,12 @@ strategy development lifecycle.
 
 <div class="grid cards" markdown>
 
+-   __.charting__&nbsp;&nbsp;
+
+    ---
+
+    [:material-link-variant: View `charting` package API](charting/config.md)
+
 -   __.data__&nbsp;&nbsp;
 
     ---

@@ -2,7 +2,7 @@
 Enumerations for concepts of the trading domain.
 """
 
-from enum import Enum
+from enum import Enum, auto
 
 
 class TradeSide(Enum):
@@ -13,8 +13,8 @@ class TradeSide(Enum):
     quantity from the perspective of the trading account.
     """
 
-    BUY = "BUY"
-    SELL = "SELL"
+    BUY = auto()
+    SELL = auto()
 
 
 class TimeUnit(Enum):
@@ -23,10 +23,10 @@ class TimeUnit(Enum):
     aggregation period units).
     """
 
-    SECOND = "SECOND"
-    MINUTE = "MINUTE"
-    HOUR = "HOUR"
-    DAY = "DAY"
+    SECOND = auto()
+    MINUTE = auto()
+    HOUR = auto()
+    DAY = auto()
 
 
 class OptionRight(Enum):
@@ -40,5 +40,5 @@ class OptionRight(Enum):
     and obliges the seller to buy at that price if exercised.
     """
 
-    CALL = "CALL"
-    PUT = "PUT"
+    CALL = auto()
+    PUT = auto()
