@@ -125,7 +125,7 @@ type ExpirationDate = date
 Expiration or last trade date of a derivative contract.
 
 Example:
-    ``ExpirationDate(2025, 9, 19)`` for September 19, 2025.
+    `ExpirationDate(2025, 9, 19)` for September 19, 2025.
 """
 
 

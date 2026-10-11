@@ -10,7 +10,6 @@ system components.
 # fmt: off
 from dataclasses    import dataclass, field
 from time           import time_ns
-from uuid           import UUID
 # fmt: on
 
 
@@ -27,6 +26,7 @@ from .types import (
     Volume,
     IndicatorName,
     IndicatorReading,
+    OrderId,
 )
 
 
@@ -71,7 +71,7 @@ class OrderRelated:
             Unique system-internal identifier of the order this event relates to.
     """
 
-    order_id: UUID
+    order_id: OrderId
 
 
 class DomainEvents:
