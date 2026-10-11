@@ -25,10 +25,22 @@ converting the nanoseconds to seconds (divide by `1e9`).
 
 type ScaledPrice = int
 """
-Price multiplied by a fixed scaling factor (typically 1e9) to represent it as an `int`.
+Price multiplied by `PRICE_SCALE_FACTOR` to represent it as an `int`.
 
-Integer arithmetic is faster, deterministic, and avoids the rounding errors inherent to 
+Integer arithmetic is faster, deterministic, and avoids the rounding errors inherent to
 floating-point representation of decimal prices.
+"""
+
+
+type ScaledMonetaryAmount = int
+"""
+Monetary amount multiplied by `PRICE_SCALE_FACTOR` to represent it as an `int`.
+
+Integer arithmetic keeps sums of amounts (e.g., PnL over many roundtrips minus their
+costs) exact.
+
+The currency is not part of the value and must be known from context (e.g., the
+currency of the instrument the amount relates to).
 """
 
 
