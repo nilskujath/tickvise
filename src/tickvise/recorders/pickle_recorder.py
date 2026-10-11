@@ -5,8 +5,9 @@ Records all event messages to a pickle file for post-run inspection.
 # fmt: off
 import pickle
 
-from io         import BufferedWriter
-from pathlib    import Path
+from collections.abc    import Iterator
+from io                 import BufferedWriter
+from pathlib            import Path
 # fmt: on
 
 
@@ -82,3 +83,32 @@ class PickleRecorder(RecorderBase):
         assert self._output_file is not None
         pickle.dump(event_message, self._output_file)
         self._output_file.flush()
+
+    @staticmethod
+    def read(path: Path) -> Iterator[EventMessageBase]:
+        """
+        Read the event messages from a pickle file written by a `PickleRecorder`, one
+        at a time and in recording order.
+
+        Event messages are loaded one at a time as the caller iterates, so a recording
+        can be processed without loading all of it into memory at once.
+
+        Example:
+            ```python
+            for event_message in PickleRecorder.read(Path("recording.pkl")):
+                print(event_message)
+
+            # Or collect the entire recording into a list (keeps all of it in memory):
+            event_messages = list(PickleRecorder.read(Path("recording.pkl")))
+            ```
+
+        Parameters:
+            path:
+                Path to the pickle file.
+        """
+        with open(path, "rb") as f:
+            while True:
+                try:
+                    yield pickle.load(f)
+                except EOFError:
+                    return
