@@ -323,7 +323,11 @@ class StrategyBase(SubscriberBase):
                 indicator[event.instrument, event.bar_interval, -1],
                 indicator.IS_SCALED,
             )
-        self.emit(SystemEvents.IndicatorUpdate(source_bar=event, readings=readings))
+        self.emit(
+            SystemEvents.IndicatorUpdate(
+                instrument=event.instrument, source_bar=event, readings=readings
+            )
+        )
 
     def _on_event(self, event_message: EventMessageBase) -> None:
         """

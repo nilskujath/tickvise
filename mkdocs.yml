@@ -41,6 +41,7 @@ nav:
     - simulated.py: reference/brokers/simulated.md
   - .charting:
     - config.py: reference/charting/config.md
+    - price_chart.py: reference/charting/price_chart.md
   - .data:
     - databento.py: reference/data/databento.md
   - .datafeeds:

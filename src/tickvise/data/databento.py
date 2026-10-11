@@ -80,7 +80,6 @@ def databento_csv_to_pkl(
                     close=int(row[c_close]),
                     volume=int(row[c_vol]),
                     data_source="Databento",
-                    is_historical=True,
                 ),
                 f_out,
             )

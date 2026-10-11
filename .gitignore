@@ -9,3 +9,6 @@ __pycache__/
 
 # Data
 market_data/
+
+# Sandbox
+sandbox/

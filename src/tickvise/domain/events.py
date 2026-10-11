@@ -108,8 +108,14 @@ class DomainEvents:
                 Origin of the market data (e.g., information about datafeed provider
                 and exchange).
             is_historical:
-                If `True`, this bar is part of the historical warmup period and should
-                    not trigger trading logic; defaults to `False`.
+                If `True`, this indicates that the bar completed before the system went
+                    live (e.g., fetched from a historical datafeed on startup to
+                    provide indicators with history to properly warm up) and should not
+                    be traded on (see `StrategyBase`: indicators are updated, but
+                    trading logic is not triggered).
+                Bars replayed in backtests stand in for live bars and must be set to
+                    `False`.
+                Defaults to `False`.
         """
 
         # fmt: off
@@ -403,13 +409,15 @@ class SystemEvents:
         reason: Reason
 
     @dataclass(frozen=True, kw_only=True)
-    class IndicatorUpdate(EventMessageBase):
+    class IndicatorUpdate(EventMessageBase, InstrumentRelated):
         """
         Event message carrying the indicator readings computed from a bar.
 
         Parameters:
             timestamp:
                 Timestamp of event creation.
+            instrument:
+                The specific instrument this event relates to.
             source_bar:
                 The `NewBar` event these readings were computed from.
             readings:
