@@ -17,6 +17,19 @@ class TradeSide(Enum):
     SELL = auto()
 
 
+class PositionSide(Enum):
+    """
+    Enumeration of the possible sides (long vs. short) of a position.
+
+    A `LONG` position holds a positive signed position quantity.
+
+    A `SHORT` position holds a negative signed position quantity.
+    """
+
+    LONG = auto()
+    SHORT = auto()
+
+
 class TimeUnit(Enum):
     """
     Enumeration of time units recognized by the system (primarily used to define bar
