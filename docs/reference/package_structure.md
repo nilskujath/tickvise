@@ -64,6 +64,12 @@ strategy development lifecycle.
 
 <div class="grid cards" markdown>
 
+-   __.analysis__&nbsp;&nbsp;
+
+    ---
+
+    [:material-link-variant: View `analysis` package API](analysis/roundtrips.md)
+
 -   __.charting__&nbsp;&nbsp;
 
     ---

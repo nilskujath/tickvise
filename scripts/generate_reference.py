@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ruamel.yaml import YAML
 
-SPECIAL_PURPOSE_PACKAGES: set[str] = {"utils", "data", "charting"}
+SPECIAL_PURPOSE_PACKAGES: set[str] = {"utils", "data", "charting", "analysis"}
 
 
 # ——————————————————————————————————————————————————————————————————————————————————————

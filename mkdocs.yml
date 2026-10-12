@@ -35,6 +35,8 @@ nav:
 - Home: index.md
 - Reference:
   - Package Structure: reference/package_structure.md
+  - .analysis:
+    - roundtrips.py: reference/analysis/roundtrips.md
   - .brokers:
     - base.py: reference/brokers/base.md
     - commissions.py: reference/brokers/commissions.md

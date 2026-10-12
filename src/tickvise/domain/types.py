@@ -205,7 +205,7 @@ class Position(NamedTuple):
         positions.
 
         Strategies that require lot-level accounting (e.g., for selective partial exits
-        or FIFO-based P&L attribution) can build their own lot tracking from the
+        or FIFO-based PnL attribution) can build their own lot tracking from the
         individual `Fill` events they receive.
 
         However, lot-level state is not restored on reconnect in our system:
