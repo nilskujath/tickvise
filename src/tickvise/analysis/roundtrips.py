@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from typing import NamedTuple
 
 from ..domain.enums import PositionSide
-from ..domain.events import DomainEvents
+from ..domain.events import DomainEvents, EventMessageBase
 from ..domain.instruments import InstrumentBase
 from ..domain.types import Quantity, ScaledMonetaryAmount
 
@@ -65,4 +66,32 @@ class Roundtrip:
     mae:                    ScaledMonetaryAmount
     holding_period_in_bars: BarCount
     max_position:           Quantity
+    # fmt: on
+
+
+class RoundtripWindow(NamedTuple):
+    """
+    The event messages of a roundtrip's instrument recorded during the roundtrip and
+    during a number of bars before and after it (the left and right context of the
+    roundtrip).
+
+    The three parts (`left_context`, `holding_period`, and `right_context`) follow each
+    other without gaps, so together they are an unfiltered excerpt of the recording
+    (including, e.g., the fills of neighboring roundtrips if they happened within the
+    window).
+
+    Parameters:
+        left_context:
+            Event messages of the bars before the bar the position was opened in.
+        holding_period:
+            Event messages of the bars from the one the position was opened in to the
+                one it was closed in.
+        right_context:
+            Event messages of the bars after the one the position was closed in.
+    """
+
+    # fmt: off
+    left_context:   list[EventMessageBase]
+    holding_period: list[EventMessageBase]
+    right_context:  list[EventMessageBase]
     # fmt: on
