@@ -34,7 +34,7 @@ class BrokerConnectorBase(ConnectableSubscriberBase):
         emits synthetic events during initialization. Otherwise, strategies
         will miss the initial position and working order state.
 
-    Warning:
+    Danger:
         Broker connectors filter events by instrument, which allows multiple broker
         connectors on the same event bus, each responsible for a different set of
         instruments (multi-broker trading).

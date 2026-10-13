@@ -38,6 +38,14 @@ class StrategyBase(SubscriberBase):
 
     Subclasses must implement the `.on_bar` abstract method to define the core trading
     logic.
+
+    Danger:
+        Strategies filter events by instrument, which allows multiple strategies on the
+        same event bus.
+        However, two strategies must not trade the same instrument: each would receive
+        the other's order lifecycle events and fills and fail with a `KeyError` on
+        orders it never submitted, and both would track the account's combined position
+        in the instrument instead of their own.
     """
 
     SUBSCRIBE_TO: tuple[type[EventMessageBase], ...] = (
