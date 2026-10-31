@@ -13,5 +13,8 @@ market_data/
 # Sandbox
 sandbox/
 
+# Private tests
+private_tests/
+
 # In case `mkdocs build` is run
 site/
