@@ -3,7 +3,7 @@ Extracts the roundtrips of a run and their statistics from the run's recorded st
 event messages.
 """
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 
@@ -11,6 +11,7 @@ from ..domain.enums import PositionSide
 from ..domain.events import DomainEvents, EventMessageBase, SystemEvents
 from ..domain.instruments import InstrumentBase
 from ..domain.types import (
+    FillId,
     Quantity,
     ScaledMonetaryAmount,
     ScaledPrice,
@@ -38,8 +39,9 @@ class Roundtrip:
     A completed roundtrip on one instrument, from the fill that opens a position to the
     fill that closes it or flips it to commence another roundtrip.
 
-    PnL values are gross of costs and in the instrument's currency (i.e., price points
-    times contracts times the instrument's contract multiplier).
+    Amounts are in the instrument's currency (i.e., price points times contracts times
+    the instrument's contract multiplier); all of them except `net_pnl` are gross of
+    costs.
 
     Parameters:
         instrument:
@@ -61,6 +63,16 @@ class Roundtrip:
                 the roundtrip it opens.
         pnl:
             Realized PnL of the roundtrip.
+        costs:
+            Costs (commissions and fees) of the fills of the roundtrip, as reported by
+                the broker.
+            The costs of a fill that flips the position are split between the roundtrip
+                it closes and the roundtrip it opens, in proportion to the contracts it
+                closes and opens.
+            A fill without a cost report (e.g., a synthetic fill) counts as having no
+                costs.
+        net_pnl:
+            PnL net of costs, i.e., `pnl` minus `costs`.
         mfe:
             Maximum favorable excursion: the highest PnL (realized plus unrealized) the
                 roundtrip reached on any bar it was open, never below zero or `pnl`.
@@ -86,6 +98,8 @@ class Roundtrip:
     exit_period_start:      UnixNs | None
     fills:                  tuple[DomainEvents.Fill, ...]
     pnl:                    ScaledMonetaryAmount
+    costs:                  ScaledMonetaryAmount
+    net_pnl:                ScaledMonetaryAmount
     mfe:                    ScaledMonetaryAmount
     mae:                    ScaledMonetaryAmount
     holding_period_in_bars: BarCount
@@ -97,7 +111,8 @@ class Roundtrip:
 class _RoundtripInProgress:
     """
     Data collected to build a `Roundtrip`, from the fill that opens the position until
-    its exit bar is complete or the stream of event messages has ended.
+    its exit bar is complete and the cost reports of all its fills have arrived, or the
+    stream of event messages has ended.
 
     The `Roundtrip` can be built from the collected data at any point after the exit
     fill by calling the `.completed` method.
@@ -181,7 +196,25 @@ class _RoundtripInProgress:
         """
         return self.cash_flow + self.size * price * self.instrument.multiplier
 
-    def completed(self) -> Roundtrip:
+    def has_all_cost_reports(
+        self, reported_costs: dict[FillId, ScaledMonetaryAmount]
+    ) -> bool:
+        """
+        Return whether the cost reports of all fills processed so far have arrived.
+
+        Synthetic fills have no cost reports, so they are skipped.
+
+        Parameters:
+            reported_costs:
+                Costs reported so far, by the ID of the fill they were charged for.
+        """
+        return all(
+            fill.synthetic or fill.fill_id in reported_costs for fill in self.fills
+        )
+
+    def completed(
+        self, reported_costs: dict[FillId, ScaledMonetaryAmount]
+    ) -> Roundtrip:
         """
         Return the roundtrip built from the data collected so far.
 
@@ -189,10 +222,33 @@ class _RoundtripInProgress:
         The exit price is a point on the roundtrip's path, so the excursions include
         `pnl`.
 
+        Parameters:
+            reported_costs:
+                Costs reported so far, by the ID of the fill they were charged for;
+                    fills missing from it count as having no costs.
+
         Returns:
             The `Roundtrip` built from the collected data.
         """
         assert self.pnl is not None, "The exit fill has not been processed yet."
+
+        # The costs of a flipping entry or exit fill are split in proportion to the
+        # contracts it opens and closes (from flat, all of them are opened; to flat,
+        # all of them are closed); the remainder of the integer division goes to the
+        # closing part, so the two parts add up to the reported costs exactly
+        costs: ScaledMonetaryAmount = 0
+        for fill in self.fills:
+            cost = reported_costs.get(fill.fill_id)
+            if cost is None:
+                continue
+            opening_cost = cost * abs(fill.signed_position_size) // fill.filled_qty
+            if fill is self.fills[0]:
+                costs += opening_cost
+            elif fill is self.fills[-1]:
+                costs += cost - opening_cost
+            else:
+                costs += cost
+
         return Roundtrip(
             instrument=self.instrument,
             number=self.number,
@@ -201,6 +257,8 @@ class _RoundtripInProgress:
             exit_period_start=self.exit_period_start,
             fills=tuple(self.fills),
             pnl=self.pnl,
+            costs=costs,
+            net_pnl=self.pnl - costs,
             mfe=max(self.mfe, self.pnl),
             mae=min(self.mae, self.pnl),
             holding_period_in_bars=self.holding_period_in_bars,
@@ -212,14 +270,19 @@ def extract_roundtrips(events: Iterable[EventMessageBase]) -> Iterator[Roundtrip
     """
     Extract all completed roundtrips from a stream of event messages in a single pass.
 
-    A roundtrip is yielded as soon as its exit bar is complete, so the roundtrips of
-    each instrument are yielded in the order of their numbers; roundtrips closed after
-    the last bar of their instrument are yielded at the end of the event messages.
+    A roundtrip is yielded as soon as its exit bar is complete and the cost reports of
+    all its fills have arrived.
+    The roundtrips of each instrument are yielded in the order of their numbers, so a
+    roundtrip waiting for a cost report also holds back the later roundtrips of its
+    instrument.
+    Roundtrips closed after the last bar of their instrument, and roundtrips whose cost
+    reports never arrive, are yielded at the end of the event messages.
     Roundtrips still open at the end of the event messages are not yielded, since they
     have no PnL yet.
 
-    Only the roundtrips in progress are held in memory, so `events` can be a lazily read
-    recording of any length.
+    Only the roundtrips in progress or waiting for cost reports, and the cost reports
+    they need, are held in memory, so `events` can be a lazily read recording of any
+    length.
 
     Parameters:
         events:
@@ -242,6 +305,13 @@ def extract_roundtrips(events: Iterable[EventMessageBase]) -> Iterator[Roundtrip
         A synthetic fill that opens a roundtrip restores a position whose entry fills
         are not part of the event messages, so the position's cost basis is used as its
         entry price.
+
+        A cost report may arrive after the exit bar of its roundtrip, since Interactive
+        Brokers reports the costs of an execution separately from the execution itself.
+        Roundtrips therefore wait for their cost reports instead of being yielded with
+        incomplete costs.
+        In backtests, a cost report is recorded right after its fill, so no roundtrip
+        waits beyond its exit bar.
     """
 
     open_roundtrips: dict[InstrumentBase, _RoundtripInProgress] = {}
@@ -249,6 +319,10 @@ def extract_roundtrips(events: Iterable[EventMessageBase]) -> Iterator[Roundtrip
         list
     )
     roundtrip_count: dict[InstrumentBase, RoundtripNumber] = defaultdict(int)
+    awaiting_cost_reports: dict[InstrumentBase, deque[_RoundtripInProgress]] = (
+        defaultdict(deque)
+    )
+    reported_costs: dict[FillId, ScaledMonetaryAmount] = {}
 
     for event in events:
         match event:
@@ -321,9 +395,33 @@ def extract_roundtrips(events: Iterable[EventMessageBase]) -> Iterator[Roundtrip
 
                 for roundtrip in closed_this_bar.pop(instrument, []):
                     roundtrip.exit_period_start = bar.period_start
-                    yield roundtrip.completed()
+                    awaiting_cost_reports[instrument].append(roundtrip)
 
-    # Roundtrips closed after the last bar of their instrument
-    for roundtrips in closed_this_bar.values():
-        for roundtrip in roundtrips:
-            yield roundtrip.completed()
+            case DomainEvents.CostReport() as cost_report:
+                instrument = cost_report.instrument
+                reported_costs[cost_report.fill_id] = cost_report.cost
+
+            case _:
+                continue
+
+        # Yield the roundtrips of the instrument whose exit bar is complete and whose
+        # cost reports have all arrived, in the order of their numbers
+        awaiting = awaiting_cost_reports[instrument]
+        while awaiting and awaiting[0].has_all_cost_reports(reported_costs):
+            roundtrip = awaiting.popleft()
+            yield roundtrip.completed(reported_costs)
+
+            # Release the cost reports no longer needed; a flipping exit fill also
+            # belongs to the next roundtrip, which releases it as its entry fill
+            exit_fill = roundtrip.fills[-1]
+            for fill in roundtrip.fills:
+                if fill is not exit_fill or exit_fill.signed_position_size == 0:
+                    reported_costs.pop(fill.fill_id, None)
+
+    # Nothing arrives after the end of the event messages: roundtrips closed after the
+    # last bar of their instrument join the ones still waiting, and all are yielded
+    for instrument, roundtrips in closed_this_bar.items():
+        awaiting_cost_reports[instrument].extend(roundtrips)
+    for awaiting in awaiting_cost_reports.values():
+        for roundtrip in awaiting:
+            yield roundtrip.completed(reported_costs)
