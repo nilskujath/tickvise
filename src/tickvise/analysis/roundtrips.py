@@ -4,7 +4,13 @@ from typing import NamedTuple
 from ..domain.enums import PositionSide
 from ..domain.events import DomainEvents, EventMessageBase
 from ..domain.instruments import InstrumentBase
-from ..domain.types import Quantity, ScaledMonetaryAmount
+from ..domain.types import (
+    Multiplier,
+    Quantity,
+    ScaledMonetaryAmount,
+    ScaledPrice,
+    SignedPositionSize,
+)
 
 type RoundtripNumber = int
 """
@@ -95,3 +101,148 @@ class RoundtripWindow(NamedTuple):
     holding_period: list[EventMessageBase]
     right_context:  list[EventMessageBase]
     # fmt: on
+
+
+type RoundtripWithWindow = tuple[Roundtrip, RoundtripWindow]
+"""
+A completed roundtrip together with its window.
+"""
+
+
+@dataclass(kw_only=True)
+class _RoundtripInProgress:
+    """
+    Data collected to build a `Roundtrip` and its `RoundtripWindow`, from the fill that
+    opens the position, at which point the left context is already final, until the
+    right context after its exit is complete or the stream of event messages has ended.
+
+    The `Roundtrip` and its `RoundtripWindow` can be built from the collected data at
+    any point after the exit fill by calling the `.completed` method.
+
+    Parameters:
+        instrument:
+            Same as in `Roundtrip`.
+        number:
+            Same as in `Roundtrip`.
+        side:
+            Same as in `Roundtrip`.
+        multiplier:
+            Not part of `Roundtrip`.
+            Contract multiplier of the instrument, used to value the position in the
+                instrument's currency.
+        size:
+            Not part of `Roundtrip`.
+            Signed position size after the last processed fill of the roundtrip,
+                not counting its exit fill.
+        cash_flow:
+            Not part of `Roundtrip`.
+            Net amount of money paid (negative) and received (positive) through the
+                fills of the roundtrip processed so far, not counting its exit fill.
+            Together with `size`, it gives the PnL at any price (see `pnl_at`): the
+                cash flow so far plus the cash flow of closing the position at that
+                price.
+        max_position:
+            Same as in `Roundtrip`, up to the last processed fill.
+        fills:
+            Differs from `Roundtrip`: the fills of the roundtrip processed so far, as a
+                list; calling `.completed` copies them into a tuple for use within
+                `Roundtrip`.
+        pnl:
+            Differs from `Roundtrip`: `None` while the position is open and set only
+                once, by the exit fill, to the PnL of the whole roundtrip (the cash flow
+                plus the cash flow of closing the position at the exit price).
+            Partial exits before that do not change it; the PnL they realize is
+                contained in `cash_flow`.
+        mfe:
+            Differs from `Roundtrip`: the highest PnL at the high or low of any bar
+                processed so far, never below zero.
+            The entry and exit bars are valued as if their high and low happened while
+                the position was held, which may overstate the excursion.
+        mae:
+            Differs from `Roundtrip`: the lowest PnL at the high or low of any bar
+                processed so far, never above zero.
+            The entry and exit bars are valued as if their high and low happened while
+                the position was held, which may overstate the excursion.
+        holding_period_in_bars:
+            Same as in `Roundtrip`, up to the last processed bar.
+        left_context:
+            Not part of `Roundtrip`.
+            Event messages of the bars before the bar the position was opened in; final
+                from the start.
+        holding_period:
+            Not part of `Roundtrip`.
+            Event messages of the bars from the one the position was opened in to the
+                one it was closed in, collected so far.
+        right_context:
+            Not part of `Roundtrip`.
+            Event messages of the bars after the one the position was closed in,
+                collected so far.
+        right_context_bars:
+            Not part of `Roundtrip`.
+            Number of bars whose event messages have been collected in `right_context`
+                so far.
+    """
+
+    # fmt: off
+    instrument:             InstrumentBase
+    number:                 RoundtripNumber
+    side:                   PositionSide
+    multiplier:             Multiplier
+    size:                   SignedPositionSize
+    cash_flow:              ScaledMonetaryAmount
+    max_position:           Quantity
+    fills:                  list[DomainEvents.Fill]
+    pnl:                    ScaledMonetaryAmount | None = None
+    mfe:                    ScaledMonetaryAmount = 0
+    mae:                    ScaledMonetaryAmount = 0
+    holding_period_in_bars: BarCount = 0
+    left_context:           list[EventMessageBase]
+    holding_period:         list[EventMessageBase]
+    right_context:          list[EventMessageBase]
+    right_context_bars:     BarCount = 0
+    # fmt: on
+
+    def pnl_at(self, price: ScaledPrice) -> ScaledMonetaryAmount:
+        """
+        Return the PnL (realized plus unrealized) of the roundtrip with its position
+        valued at the given price.
+
+        Parameters:
+            price:
+                Price at which the position is valued.
+
+        Returns:
+            The cash flow so far plus the cash flow of closing the position at `price`.
+        """
+        return self.cash_flow + self.size * price * self.multiplier
+
+    def completed(self) -> RoundtripWithWindow:
+        """
+        Return the roundtrip and its window, built from the data collected so far.
+
+        Must only be called after the exit fill has set `pnl`.
+        The exit price is a point on the roundtrip's path, so the excursions include
+        `pnl`.
+
+        Returns:
+            The `Roundtrip` built from the collected data, together with the
+                `RoundtripWindow` of the collected event messages.
+        """
+        assert self.pnl is not None, "The exit fill has not been processed yet."
+        roundtrip = Roundtrip(
+            instrument=self.instrument,
+            number=self.number,
+            side=self.side,
+            fills=tuple(self.fills),
+            pnl=self.pnl,
+            mfe=max(self.mfe, self.pnl),
+            mae=min(self.mae, self.pnl),
+            holding_period_in_bars=self.holding_period_in_bars,
+            max_position=self.max_position,
+        )
+        window = RoundtripWindow(
+            left_context=self.left_context,
+            holding_period=self.holding_period,
+            right_context=self.right_context,
+        )
+        return roundtrip, window

@@ -119,7 +119,7 @@ class StrategyBase(SubscriberBase):
                     inside a `_bar_context`.
 
         Returns:
-            The net signed position size, or ``0`` if no position is held.
+            The net signed position size, or `0` if no position is held.
         """
         held_position = self._positions.get(instrument or self._current_instrument)
         return held_position.size if held_position is not None else 0
