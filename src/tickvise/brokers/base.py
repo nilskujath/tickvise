@@ -23,6 +23,8 @@ class BrokerConnectorBase(ConnectableSubscriberBase):
     A broker connector subscribes to `OrderRequest` and `CancellationRequest`
     events and emits order lifecycle events (`OrderSubmitted`, `OrderRejected`,
     `OrderCancelled`, `CancellationRejected`, `Fill`, `OrderExpired`) in response.
+    After every fill that is not synthetic, it emits exactly one `CostReport`, even if
+    no costs were charged.
 
     On initialization (after connecting), `_emit_account_state` is called to emit
     synthetic events that restore the system's view of existing positions and working

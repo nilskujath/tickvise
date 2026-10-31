@@ -8,7 +8,7 @@ incoming bar data and emitting (approximately) the same order lifecycle events t
 live broker connector would produce.
 """
 
-from typing import Callable
+from uuid import uuid4
 
 from ..domain.enums import TradeSide
 from ..domain.events import DomainEvents, EventMessageBase
@@ -21,6 +21,7 @@ from ..domain.types import (
 )
 from ..messaging.backtest_eventbus import BacktestEventBus
 from .base import BrokerConnectorBase
+from .commissions import CommissionModel
 
 
 class SimulatedBrokerConnector(BrokerConnectorBase):
@@ -54,9 +55,7 @@ class SimulatedBrokerConnector(BrokerConnectorBase):
         self,
         event_bus: BacktestEventBus,
         instruments: set[InstrumentBase],
-        commission_model: (
-            Callable[[InstrumentBase, int, ScaledPrice], ScaledPrice] | None
-        ) = None,
+        commission_model: CommissionModel | None = None,
     ) -> None:
         """
         Initialize the simulated broker connector.
@@ -71,11 +70,12 @@ class SimulatedBrokerConnector(BrokerConnectorBase):
             instruments:
                 Set of instruments managed by this broker connector.
             commission_model:
-                Optional callable that computes the per-contract commission for a
-                fill, given the instrument, quantity, and fill price.
-                The returned value is in `ScaledPrice` units and is folded into the
-                position's cost basis: added for buys, subtracted for sells.
-                Defaults to zero commission if not provided.
+                Optional callable that computes the costs (commissions and fees) of a
+                    fill, given the instrument, quantity, and fill price, as an amount
+                    in the currency of the instrument.
+                The costs are reported in a `CostReport` after the fill and folded into
+                    the position's cost basis: added for buys, subtracted for sells.
+                Defaults to zero costs if not provided.
         """
         if not isinstance(event_bus, BacktestEventBus):
             raise TypeError(
@@ -289,9 +289,10 @@ class SimulatedBrokerConnector(BrokerConnectorBase):
         """
         Execute a complete fill for the given order at the given price.
 
-        Commission is computed via the injected commission model and folded into
-        the effective price used for cost basis accounting: added for buys,
-        subtracted for sells.
+        The costs of the fill are computed via the injected commission model and
+        reported in a `CostReport` right after the `Fill`.
+        They are also folded into the effective price used for cost basis accounting:
+        added for buys, subtracted for sells.
         This matches Interactive Brokers' `avgCost` behavior, where the position's
         cost basis includes commissions and fees.
 
@@ -303,12 +304,16 @@ class SimulatedBrokerConnector(BrokerConnectorBase):
         """
         signed_fill_qty = order.qty if order.trade_side is TradeSide.BUY else -order.qty
 
-        commission = self._commission_model(order.instrument, order.qty, fill_price)
+        fill_id = uuid4()
+        cost = self._commission_model(order.instrument, order.qty, fill_price)
 
+        # The cost basis is a price per contract, so the cost is spread over the
+        # contracts filled and converted into price points via the multiplier
+        price_adjustment = cost // (order.qty * order.instrument.multiplier)
         if order.trade_side is TradeSide.BUY:
-            effective_price = fill_price + commission
+            effective_price = fill_price + price_adjustment
         else:
-            effective_price = fill_price - commission
+            effective_price = fill_price - price_adjustment
 
         del self._working_orders[order.order_id]
 
@@ -323,12 +328,18 @@ class SimulatedBrokerConnector(BrokerConnectorBase):
             DomainEvents.Fill(
                 instrument=order.instrument,
                 order_id=order.order_id,
+                fill_id=fill_id,
                 trade_side=order.trade_side,
                 filled_qty=order.qty,
                 remaining_qty=0,
                 fill_price=fill_price,
                 signed_position_size=held.size if held is not None else 0,
                 position_cost_basis=held.cost_basis if held is not None else None,
+            )
+        )
+        self.emit(
+            DomainEvents.CostReport(
+                instrument=order.instrument, fill_id=fill_id, cost=cost
             )
         )
 

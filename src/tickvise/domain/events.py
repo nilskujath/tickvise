@@ -27,6 +27,9 @@ from .types import (
     IndicatorName,
     IndicatorReading,
     OrderId,
+    FillId,
+    BrokerFillId,
+    ScaledMonetaryAmount,
 )
 
 
@@ -342,6 +345,13 @@ class DomainEvents:
                 The specific instrument this event relates to.
             order_id:
                 Unique system-internal identifier of the order this event relates to.
+            fill_id:
+                Unique system-internal identifier of this fill; the cost report of the
+                fill refers to it.
+            broker_fill_id:
+                Identifier of this fill assigned by the broker (e.g., the execution ID
+                of Interactive Brokers), or `None` if the broker reports none (e.g.,
+                for synthetic fills).
             trade_side:
                 Direction of the fill (buy or sell).
             filled_qty:
@@ -362,6 +372,8 @@ class DomainEvents:
         """
 
         # fmt: off
+        fill_id:                FillId
+        broker_fill_id:         BrokerFillId | None = None
         trade_side:             TradeSide
         filled_qty:             Quantity
         remaining_qty:          Quantity
@@ -371,6 +383,43 @@ class DomainEvents:
 
         signed_position_size:   SignedPositionSize
         position_cost_basis:    ScaledPrice | None = None
+        # fmt: on
+
+    @dataclass(frozen=True, kw_only=True)
+    class CostReport(EventMessageBase, InstrumentRelated):
+        """
+        Event message reporting the costs (commissions and fees) charged for a fill.
+
+        A broker connector emits exactly one cost report for every fill that is not
+        synthetic, after the fill, even if no costs were charged (with a cost of zero).
+        Synthetic fills get none, since they do not represent an actual execution.
+
+        Implementation Note:
+            Interactive Brokers reports the costs of an execution separately from the
+            execution itself, and possibly later.
+            A separate event message keeps fills from being held back until their costs
+            are known.
+
+            Brokers refer to fills by their own identifiers (e.g., the commission
+            reports of Interactive Brokers refer to the execution ID), so the broker
+            connector maps them to the system-internal fill ID.
+
+        Parameters:
+            timestamp:
+                Timestamp of event creation.
+            instrument:
+                The specific instrument this event relates to.
+            fill_id:
+                Unique system-internal identifier of the fill the costs were charged
+                for.
+            cost:
+                Commissions and fees charged for the fill, in the currency of the
+                instrument.
+        """
+
+        # fmt: off
+        fill_id:    FillId
+        cost:       ScaledMonetaryAmount
         # fmt: on
 
     @dataclass(frozen=True, kw_only=True)

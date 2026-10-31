@@ -147,6 +147,19 @@ Unique system-internal identifier for an order.
 """
 
 
+type FillId = UUID
+"""
+Unique system-internal identifier for a fill.
+"""
+
+
+type BrokerFillId = str
+"""
+Identifier of a fill assigned by the broker (e.g., the execution ID of Interactive
+Brokers), kept for reconciliation with the broker's records.
+"""
+
+
 class IndicatorReading(NamedTuple):
     """
     A single indicator computation result paired with its scale information.

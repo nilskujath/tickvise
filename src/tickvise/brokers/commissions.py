@@ -1,15 +1,34 @@
+from collections.abc import Callable
+
 from ..domain.constants import PRICE_SCALE_FACTOR
-from ..domain.instruments import Instrument
-from ..domain.types import ScaledPrice
+from ..domain.instruments import InstrumentBase
+from ..domain.types import Quantity, ScaledMonetaryAmount, ScaledPrice
+
+type CommissionModel = Callable[
+    [InstrumentBase, Quantity, ScaledPrice], ScaledMonetaryAmount
+]
+"""
+Signature shared by all commission models: a callable that returns the costs
+(commissions and fees) of a fill in the currency of the instrument, given the
+instrument, the quantity filled, and the fill price.
+
+Every model receives all three, so that the simulated broker can call any model the
+same way; a model ignores the ones it does not need (e.g., a flat fee per contract needs
+only the quantity, while a fee per share capped at a percentage of the trade value also
+needs the price).
+"""
 
 
 def ib_micro_emini(
-    instrument: Instrument.Future,
-    qty: int,
-    price: ScaledPrice,
-) -> ScaledPrice:
+    _instrument: InstrumentBase,
+    qty: Quantity,
+    _price: ScaledPrice,
+) -> ScaledMonetaryAmount:
     """
-    IB Fixed-pricing all-in commission for CME Micro E-Mini futures as of Q3 2026.
+    IB Fixed-pricing all-in commission for a fill of CME Micro E-Mini futures as of Q3
+    2026, in USD.
+
+    A flat fee per contract, so only the quantity is used.
 
     Per contract per side
 
@@ -18,4 +37,4 @@ def ib_micro_emini(
     - NFA regulatory:   $0.011
     - Total:            $0.614
     """
-    return int(0.614 / instrument.multiplier * PRICE_SCALE_FACTOR)
+    return round(0.614 * PRICE_SCALE_FACTOR) * qty
