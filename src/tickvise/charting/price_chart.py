@@ -113,6 +113,8 @@ def generate_price_charts(
     loss shading around the cost basis while a position is open), and panels for
     indicators with positive plot groups.
     The background of all panels is shaded while a position is open.
+    If the event messages start with a position open (e.g., the event messages around
+    a roundtrip), the position panel starts from the position before the first fill.
 
     Bars and indicator readings are taken from `IndicatorUpdate` events (every `NewBar`
     produces exactly one); fills and position data are taken from `Fill` events.
@@ -554,7 +556,17 @@ def generate_price_charts(
                 for k, u in enumerate(events_by_type_dict[SystemEvents.IndicatorUpdate])
             }
 
+            # The position before the first fill, which is not flat if the events
+            # start with a position open (e.g., the events around a roundtrip)
             position = 0
+            if events_by_type_dict[DomainEvents.Fill]:
+                first_fill = events_by_type_dict[DomainEvents.Fill][0]
+                position = first_fill.signed_position_size - (
+                    first_fill.filled_qty
+                    if first_fill.trade_side is TradeSide.BUY
+                    else -first_fill.filled_qty
+                )
+
             for period_start in range(
                 first_bar.period_start, last_bar.period_start + interval_ns, interval_ns
             ):
