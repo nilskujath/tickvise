@@ -114,7 +114,9 @@ def generate_price_charts(
     indicators with positive plot groups.
     The background of all panels is shaded while a position is open.
     If the event messages start with a position open (e.g., the event messages around
-    a roundtrip), the position panel starts from the position before the first fill.
+    a roundtrip), the position panel and the background shading show it from the
+    first bar on; the profit and loss shading starts at the first fill, since the
+    cost basis before it is unknown.
 
     Bars and indicator readings are taken from `IndicatorUpdate` events (every `NewBar`
     produces exactly one); fills and position data are taken from `Fill` events.
@@ -532,6 +534,17 @@ def generate_price_charts(
 
         position_axes = axes_by_plot_group[POSITION_PANEL_PLOT_GROUP]
 
+        # The position before the first fill, which is not flat if the events start
+        # with a position open (e.g., the events around a roundtrip)
+        position_before_first_fill = 0
+        if events_by_type_dict[DomainEvents.Fill]:
+            first_fill = events_by_type_dict[DomainEvents.Fill][0]
+            position_before_first_fill = first_fill.signed_position_size - (
+                first_fill.filled_qty
+                if first_fill.trade_side is TradeSide.BUY
+                else -first_fill.filled_qty
+            )
+
         # Position after the last fill of each bar, keyed by bar index
         position_after_bar: dict[int, int] = {}
         for fill in events_by_type_dict[DomainEvents.Fill]:
@@ -556,17 +569,7 @@ def generate_price_charts(
                 for k, u in enumerate(events_by_type_dict[SystemEvents.IndicatorUpdate])
             }
 
-            # The position before the first fill, which is not flat if the events
-            # start with a position open (e.g., the events around a roundtrip)
-            position = 0
-            if events_by_type_dict[DomainEvents.Fill]:
-                first_fill = events_by_type_dict[DomainEvents.Fill][0]
-                position = first_fill.signed_position_size - (
-                    first_fill.filled_qty
-                    if first_fill.trade_side is TradeSide.BUY
-                    else -first_fill.filled_qty
-                )
-
+            position = position_before_first_fill
             for period_start in range(
                 first_bar.period_start, last_bar.period_start + interval_ns, interval_ns
             ):
@@ -602,10 +605,16 @@ def generate_price_charts(
         # Shade the background of all panels while a position is open
 
         # One span per position, from its entry bar to its exit bar (both included);
-        # flips keep the position open, and a position still open at the end of the
-        # data runs to the last bar
+        # flips keep the position open, a position open at the start of the data runs
+        # from the first bar, and a position still open at the end of the data runs to
+        # the last bar
         position_spans: list[tuple[float, float]] = []
         entry_x: float | None = None
+        if position_before_first_fill != 0:
+            entry_x = fill_xs[0]  # without bars, the first fill is the earliest point
+            if events_by_type_dict[SystemEvents.IndicatorUpdate]:
+                first_update = events_by_type_dict[SystemEvents.IndicatorUpdate][0]
+                entry_x = first_update.source_bar.period_start / NS_PER_DAY
         for fill, x in zip(events_by_type_dict[DomainEvents.Fill], fill_xs):
             if fill.position_cost_basis is not None and entry_x is None:
                 entry_x = x
