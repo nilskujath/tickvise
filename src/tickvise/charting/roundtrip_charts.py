@@ -2,10 +2,14 @@ from collections import defaultdict, deque
 from collections.abc import Iterable, Iterator
 from itertools import chain
 
+from matplotlib.figure import Figure
+
 from ..analysis.roundtrips import BarCount, Roundtrip
 from ..domain.events import EventMessageBase, InstrumentRelated, SystemEvents
 from ..domain.instruments import InstrumentBase
 from ..domain.types import UnixNs
+from .config import ChartConfig
+from .price_chart import generate_price_charts
 
 
 def _split_into_bars(
@@ -108,3 +112,54 @@ def _events_around_roundtrips(
         )
 
     return windows
+
+
+def generate_roundtrip_charts(
+    events: Iterable[EventMessageBase],
+    roundtrips: Iterable[Roundtrip],
+    context_bars: BarCount = 20,
+    config: ChartConfig | None = None,
+) -> dict[Roundtrip, Figure]:
+    """
+    Generate one price chart per roundtrip, from `context_bars` bars before its entry
+    bar to `context_bars` bars after its exit bar.
+
+    The caller chooses the roundtrips to chart (e.g., the five with the lowest PnL).
+    The event messages are read in a single pass, so they can come straight from a
+    recording read one event message at a time; since the roundtrips are extracted
+    from the same event messages beforehand, the recording is read twice.
+
+    Example:
+        ```python
+        path = Path("recording.pkl")
+        roundtrips = list(extract_roundtrips(PickleRecorder.read(path)))
+        worst = sorted(roundtrips, key=lambda roundtrip: roundtrip.pnl)[:5]
+        charts = generate_roundtrip_charts(PickleRecorder.read(path), worst)
+        for roundtrip, figure in charts.items():
+            figure.savefig(f"roundtrip_{roundtrip.number}.png")
+        ```
+
+    Parameters:
+        events:
+            Event messages in the order they were recorded, i.e., the same event
+                messages the roundtrips were extracted from.
+        roundtrips:
+            The roundtrips to chart.
+        context_bars:
+            Number of bars shown before the entry bar and after the exit bar; fewer at
+                the start and end of the event messages.
+        config:
+            Chart configuration. If None, all defaults are used.
+
+    Returns:
+        Mapping of each roundtrip to its figure.
+
+    Raises:
+        ValueError:
+            If the entry bar of a roundtrip is not part of the event messages.
+    """
+    windows = _events_around_roundtrips(events, roundtrips, context_bars)
+    return {
+        roundtrip: generate_price_charts(window, config)[roundtrip.instrument]
+        for roundtrip, window in windows.items()
+    }
