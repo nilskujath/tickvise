@@ -12,3 +12,6 @@ market_data/
 
 # Sandbox
 sandbox/
+
+# In case `mkdocs build` is run
+site/

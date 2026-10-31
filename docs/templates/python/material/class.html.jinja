@@ -28,21 +28,57 @@
 {% endblock bases %}
 
 {% block source %}
+{#- Griffe ends the source of a class at its last statement, which leaves out a closing
+    "# fmt: on" comment; the comment lines directly after the last statement that are
+    indented deeper than the class's first line (i.e., still part of its body) are
+    therefore added back here. -#}
+{% import "language.html.jinja" as lang with context %}
+{% set ns_src = namespace(code=none, end=class.endlineno, open=true) %}
+{% set class_lines = [] %}
+{% if class.source %}
+  {% set file_lines = class.lines_collection[class.filepath] %}
+  {% set first_line = file_lines[class.lineno - 1] %}
+  {% set indent = (first_line | length) - (first_line.lstrip() | length) %}
+  {% for line in file_lines[class.endlineno:] %}
+    {% set line_indent = (line | length) - (line.lstrip() | length) %}
+    {% if ns_src.open and line.strip().startswith("#") and line_indent > indent %}
+      {% set ns_src.end = ns_src.end + 1 %}
+    {% else %}
+      {% set ns_src.open = false %}
+    {% endif %}
+  {% endfor %}
+  {% set class_lines = file_lines[class.lineno - 1:ns_src.end] %}
+{% endif %}
+
 {% if ns.is_enum %}
-  {{ super() }}
+  {% set ns_src.code = class_lines | join("\n") %}
 {% elif ns.is_namespace_class %}
   {# Hide source — children are shown individually below #}
 {% else %}
-  {% set ns3 = namespace(has_user_methods=false) %}
-  {% for func_name in class.functions %}
+  {% set ns3 = namespace(has_user_methods=false, first_method_lineno=none) %}
+  {% for func_name, func in class.functions.items() %}
     {% if func_name not in ("__init__", "__repr__", "__str__", "__eq__", "__hash__", "__post_init__") %}
       {% set ns3.has_user_methods = true %}
+      {% if ns3.first_method_lineno is none or func.lineno < ns3.first_method_lineno %}
+        {% set ns3.first_method_lineno = func.lineno %}
+      {% endif %}
     {% endif %}
   {% endfor %}
 
   {% if not ns3.has_user_methods %}
-    {{ super() }}
+    {% set ns_src.code = class_lines | join("\n") %}
+  {% elif "dataclass" in class.labels %}
+    {#- Dataclass with methods: show the source up to the first method (the field
+        declarations); the methods are rendered individually below -#}
+    {% set ns_src.code = (class_lines[:ns3.first_method_lineno - class.lineno] | join("\n")).rstrip() %}
   {% endif %}
+{% endif %}
+
+{% if config.show_source and ns_src.code %}
+  <details class="mkdocstrings-source">
+    <summary>{{ lang.t("Source code in") }} <code>{{ class|source_location }}</code></summary>
+    {{ ns_src.code|highlight(language="python", linestart=class.lineno or 0, linenums=True) }}
+  </details>
 {% endif %}
 {% endblock source %}
 

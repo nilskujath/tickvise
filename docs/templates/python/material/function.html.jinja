@@ -1,4 +1,32 @@
+{#- Dataclass `__init__` methods are skipped (their fields are documented in the class);
+    all other functions are rendered by the base template with the source block below. -#}
 {%- set is_dataclass_init = function.name == "__init__" and function.parent.is_class and "dataclass" in function.parent.labels -%}
 {%- if not is_dataclass_init -%}
-{% include "_base/function.html.jinja" %}
+{% extends "_base/function.html.jinja" %}
 {%- endif -%}
+
+{% block source scoped %}
+{#- Griffe ends the source of a function at its last statement, which leaves out a
+    closing "# fmt: on" comment; the comment lines directly after the last statement that
+    are indented deeper than the function's first line (i.e., still part of its body) are
+    therefore added back here. -#}
+{% import "language.html.jinja" as lang with context %}
+{% if not is_dataclass_init and config.show_source and function.source %}
+  {% set file_lines = function.lines_collection[function.filepath] %}
+  {% set first_line = file_lines[function.lineno - 1] %}
+  {% set indent = (first_line | length) - (first_line.lstrip() | length) %}
+  {% set ns_src = namespace(end=function.endlineno, open=true) %}
+  {% for line in file_lines[function.endlineno:] %}
+    {% set line_indent = (line | length) - (line.lstrip() | length) %}
+    {% if ns_src.open and line.strip().startswith("#") and line_indent > indent %}
+      {% set ns_src.end = ns_src.end + 1 %}
+    {% else %}
+      {% set ns_src.open = false %}
+    {% endif %}
+  {% endfor %}
+  <details class="mkdocstrings-source">
+    <summary>{{ lang.t("Source code in") }} <code>{{ function|source_location }}</code></summary>
+    {{ (file_lines[function.lineno - 1:ns_src.end] | join("\n"))|highlight(language="python", linestart=function.lineno or 0, linenums=True) }}
+  </details>
+{% endif %}
+{% endblock source %}
