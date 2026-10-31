@@ -25,8 +25,8 @@ class SMACrossover(StrategyBase):
 
     Goes long when the fast SMA crosses above the slow SMA, and goes short when the
     fast SMA crosses below the slow SMA.
-    Trades a single contract at a time with limit orders at the triggering bar's close
-    price level.
+    Holds a single contract at a time and trades with limit orders at the triggering
+    bar's close price level.
 
     Parameters:
         event_bus:
@@ -70,11 +70,15 @@ class SMACrossover(StrategyBase):
         """
         Implement the abstract `on_bar` method with the crossover logic.
 
-        Skips bars where either SMA has not yet accumulated enough data.
-        When the fast SMA crosses above the slow SMA, any short position is flattened
-        and a long position is entered.
-        When the fast SMA crosses below the slow SMA, any long position is flattened
-        and a short position is entered.
+        Skips bars where either SMA has not yet accumulated enough data, or where both
+        are equal.
+        Otherwise, the target position is one contract long while the fast SMA is above
+        the slow SMA, and one contract short while it is below, and a single order
+        covers the difference between the target and the current position.
+        An order that has not filled within the bar after its submission is cancelled,
+        and no new order is submitted before the broker has confirmed the cancellation:
+        until then, the order could still fill, and a new order on top of it could
+        overshoot the target position.
 
         Parameters:
             event:
@@ -83,17 +87,19 @@ class SMACrossover(StrategyBase):
         fast = self._fast_sma[event.instrument, event.bar_interval, -1]
         slow = self._slow_sma[event.instrument, event.bar_interval, -1]
 
-        if isnan(fast) or isnan(slow):
+        if isnan(fast) or isnan(slow) or fast == slow:
             return
 
-        pos = self.position()
+        if self.pending_orders() or self.active_orders():
+            cancelling = {cancel.order_id for cancel in self.pending_cancels()}
+            for order in self.active_orders():
+                if order.order_id not in cancelling:
+                    self.submit_cancel(order.order_id)
+            return
 
-        if fast > slow and pos <= 0:
-            if pos < 0:
-                self.submit_order(TradeSide.BUY, 1, event.close)
-            self.submit_order(TradeSide.BUY, 1, event.close)
-
-        elif fast < slow and pos >= 0:
-            if pos > 0:
-                self.submit_order(TradeSide.SELL, 1, event.close)
-            self.submit_order(TradeSide.SELL, 1, event.close)
+        target_position = 1 if fast > slow else -1
+        position = self.position()
+        if position < target_position:
+            self.submit_order(TradeSide.BUY, target_position - position, event.close)
+        elif position > target_position:
+            self.submit_order(TradeSide.SELL, position - target_position, event.close)
