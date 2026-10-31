@@ -84,7 +84,8 @@ def _events_around_roundtrips(
     starting: dict[tuple[InstrumentBase, UnixNs | None], list[Roundtrip]] = defaultdict(
         list
     )
-    for roundtrip in roundtrips:
+    # Each roundtrip once, even if passed more than once (it would be collected twice)
+    for roundtrip in dict.fromkeys(roundtrips):
         starting[(roundtrip.instrument, roundtrip.entry_period_start)].append(roundtrip)
 
     recent_bars: dict[InstrumentBase, deque[list[EventMessageBase]]] = defaultdict(
