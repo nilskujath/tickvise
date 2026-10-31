@@ -26,6 +26,11 @@ mypy = "^2.3.1"
 [tool.black]
 target-version = ["py312"]
 
+[tool.mypy]
+# Matplotlib's date locators and formatters have no type hints, so calls to them are
+# trusted instead of rejected under `--strict`
+untyped_calls_exclude = ["matplotlib.dates"]
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

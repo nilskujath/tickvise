@@ -51,7 +51,7 @@ class BrokerConnectorBase(ConnectableSubscriberBase):
             Set of instruments managed by this broker connector.
     """
 
-    SUBSCRIBE_TO = (
+    SUBSCRIBE_TO: tuple[type[EventMessageBase], ...] = (
         DomainEvents.OrderRequest,
         DomainEvents.CancellationRequest,
     )

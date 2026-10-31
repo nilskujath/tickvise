@@ -6,6 +6,7 @@ that depends on state set up by its subclasses further down the `__init__` chain
 """
 
 from abc import ABC, abstractmethod, ABCMeta
+from typing import Any
 
 
 class _PostInitHookMeta(ABCMeta):
@@ -18,7 +19,7 @@ class _PostInitHookMeta(ABCMeta):
     A `TypeError` is raised at instantiation time if the method is missing.
     """
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         """
         Override of the default class instantiation.
 

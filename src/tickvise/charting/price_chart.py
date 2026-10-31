@@ -6,6 +6,7 @@ import math
 
 from bisect import bisect_left
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from itertools import count
 from typing import Any
@@ -31,7 +32,9 @@ from .config import (
     BarStyle,
     ChartConfig,
     Color,
+    HexColor,
     IndicatorPlotConfig,
+    PlotGroup,
     PlotStyle,
 )
 
@@ -93,6 +96,29 @@ Downward-pointing triangle marking sell fills.
 Its tip is at the origin, which matplotlib anchors to the data point, so the tip
 points exactly at the fill price.
 """
+
+
+@dataclass(frozen=True, kw_only=True)
+class _ResolvedIndicatorPlotConfig:
+    """
+    Plot configuration for a single indicator, with the fields the user left at None
+    filled in with their defaults, so that no field is None.
+
+    Parameters:
+        plot_group:
+            Panel assignment for the indicator (see `PlotGroup`).
+        style:
+            Rendering style for the indicator.
+        color:
+            Color for the indicator.
+        hidden:
+            If True, the indicator is excluded from the chart.
+    """
+
+    plot_group: PlotGroup
+    style: PlotStyle
+    color: Color | HexColor
+    hidden: bool
 
 
 def generate_price_charts(
@@ -168,6 +194,7 @@ def generate_price_charts(
     """
 
     figures: dict[InstrumentBase, Figure] = {}
+    chart_config = config or ChartConfig()
 
     # ——————————————————————————————————————————————————————————————————————————————————
     # Group events by the instrument they are associated to and their type
@@ -184,46 +211,30 @@ def generate_price_charts(
     for instrument, events_by_type_dict in events_by_instrument_and_type.items():
 
         # ——————————————————————————————————————————————————————————————————————————————
-        # Resolve chart config settings (overwrite default config with user config)
+        # Resolve each indicator's plot config (overwrite defaults with user config)
 
-        # Create default chart config as fallback
+        # Defaults: scaled indicators on the price panel, unscaled indicators each on
+        # their own panel, solid lines, and colors from the palette; only the fields
+        # the user set (not None) override them
         example_indicator_readings = (
             events_by_type_dict[SystemEvents.IndicatorUpdate][0].readings
             if events_by_type_dict[SystemEvents.IndicatorUpdate]
             else {}
         )
         auto_plot_groups = count(1)
-        default_config = ChartConfig(
-            indicators={
-                name: IndicatorPlotConfig(
-                    plot_group=0 if reading.is_scaled else next(auto_plot_groups),
-                    style=PlotStyle.SOLID,
-                    color=PALETTE[i % len(PALETTE)],
-                )
-                for i, (name, reading) in enumerate(example_indicator_readings.items())
-            }
-        )
-
-        # Overwrite default chart config with user provided chart config (if any);
-        # only fields the user set (not None) override the default
-        if config is None:
-            chart_config = default_config
-        else:
-            indicators: dict[IndicatorName, IndicatorPlotConfig] = {}
-            for name, default in default_config.indicators.items():
-                user = config.indicators.get(name, IndicatorPlotConfig())
-                indicators[name] = IndicatorPlotConfig(
-                    plot_group=(
-                        user.plot_group
-                        if user.plot_group is not None
-                        else default.plot_group
-                    ),
-                    style=user.style or default.style,
-                    color=user.color or default.color,
-                    hidden=user.hidden,
-                )
-            chart_config = ChartConfig(
-                bar_style=config.bar_style, indicators=indicators
+        plot_configs: dict[IndicatorName, _ResolvedIndicatorPlotConfig] = {}
+        for i, (name, reading) in enumerate(example_indicator_readings.items()):
+            default_plot_group = 0 if reading.is_scaled else next(auto_plot_groups)
+            user = chart_config.indicators.get(name, IndicatorPlotConfig())
+            plot_configs[name] = _ResolvedIndicatorPlotConfig(
+                plot_group=(
+                    user.plot_group
+                    if user.plot_group is not None
+                    else default_plot_group
+                ),
+                style=user.style or PlotStyle.SOLID,
+                color=user.color or PALETTE[i % len(PALETTE)],
+                hidden=user.hidden,
             )
 
         # ——————————————————————————————————————————————————————————————————————————————
@@ -232,7 +243,7 @@ def generate_price_charts(
         # Determine which panels are needed (position panel + price panel + one panel
         # per distinct plot group)
         plot_groups: set[int] = {POSITION_PANEL_PLOT_GROUP, 0}  # always needed plots
-        for plot_config in chart_config.indicators.values():
+        for plot_config in plot_configs.values():
             if not plot_config.hidden:
                 plot_groups.add(plot_config.plot_group)
         panel_order: list[int] = sorted(plot_groups)
@@ -362,7 +373,7 @@ def generate_price_charts(
         # ——————————————————————————————————————————————————————————————————————————————
         # Draw the indicators onto their panels
 
-        for name, plot_config in chart_config.indicators.items():
+        for name, plot_config in plot_configs.items():
             if plot_config.hidden:
                 continue
 
@@ -573,12 +584,12 @@ def generate_price_charts(
             for period_start in range(
                 first_bar.period_start, last_bar.period_start + interval_ns, interval_ns
             ):
-                k = bar_index_by_period_start.get(period_start)
-                if k is None:
+                bar_index = bar_index_by_period_start.get(period_start)
+                if bar_index is None:
                     shown = position
                 else:
                     position_before = position
-                    position = position_after_bar.get(k, position)
+                    position = position_after_bar.get(bar_index, position)
                     shown = (
                         position
                         if abs(position) >= abs(position_before)
@@ -662,6 +673,7 @@ def generate_price_charts(
                 max([last_bar.period_start / NS_PER_DAY, *fill_xs]) + interval_days,
             )
 
+            tick_locator: mdates.DateLocator
             match bar_interval.time_unit:
                 case TimeUnit.SECOND:
                     tick_locator = mdates.SecondLocator(bysecond=range(0, 60, 10))
