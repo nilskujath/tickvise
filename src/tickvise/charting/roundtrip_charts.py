@@ -12,7 +12,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 
 from ..analysis.roundtrips import BarCount, Roundtrip
-from ..domain.constants import PRICE_SCALE_FACTOR
+from ..domain.constants import SCALE_FACTOR
 from ..domain.events import EventMessageBase, InstrumentRelated, SystemEvents
 from ..domain.instruments import InstrumentBase
 from ..domain.types import UnixNs
@@ -181,13 +181,14 @@ def generate_journey_charts(
     Generate one journey chart per instrument, summarizing its roundtrips.
 
     Each figure consists of the following panels, from top to bottom, all with the
-    roundtrip number on the x-axis: the cumulative PnL panel (PnL summed over the
-    roundtrips in the order of their numbers), the journey panel (one bar per
+    roundtrip number on the x-axis: the cumulative PnL panel (net and gross PnL summed
+    over the roundtrips in the order of their numbers), the journey panel (one bar per
     roundtrip from its MAE to its MFE, widened with its holding period, with a black
     tick at its PnL, and dashed lines at the average PnL of winners and losers), and
     the holding period panel (holding period in bars).
-    In the journey panel, winners are drawn in green and losers in red; a roundtrip
-    with a PnL of zero counts as a loser.
+    The journey panel is gross of costs, since MAE and MFE are price movements; its
+    winners are drawn in green and its losers in red, and a roundtrip with a gross PnL
+    of zero counts as a loser.
     An info box on each panel, placed where it covers the least data, lists summary
     statistics of what the panel shows.
 
@@ -202,8 +203,8 @@ def generate_journey_charts(
 
     Implementation Note:
         The maximum drawdown in the info box of the cumulative PnL panel is measured
-        on the cumulative PnL at the exits of the roundtrips, starting from zero, so a
-        drawdown within a roundtrip is not part of it.
+        on the cumulative net PnL at the exits of the roundtrips, starting from zero,
+        so a drawdown within a roundtrip is not part of it.
     """
 
     roundtrips_by_instrument: dict[InstrumentBase, list[Roundtrip]] = defaultdict(list)
@@ -230,15 +231,27 @@ def generate_journey_charts(
         )
 
         # ——————————————————————————————————————————————————————————————————————————————
-        # Draw the cumulative PnL onto the cumulative PnL panel
+        # Draw the cumulative net and gross PnL onto the cumulative PnL panel
 
         numbers = [roundtrip.number for roundtrip in instrument_roundtrips]
-        pnls = [
-            roundtrip.pnl / PRICE_SCALE_FACTOR for roundtrip in instrument_roundtrips
+        pnls = [roundtrip.pnl / SCALE_FACTOR for roundtrip in instrument_roundtrips]
+        net_pnls = [
+            roundtrip.net_pnl / SCALE_FACTOR for roundtrip in instrument_roundtrips
         ]
-        cumulative_pnls = list(accumulate(pnls))
+        cumulative_net_pnls = list(accumulate(net_pnls))
 
-        pnl_axes.plot(numbers, cumulative_pnls, color="black", lw=1.2, marker="o", ms=3)
+        pnl_axes.plot(
+            numbers,
+            cumulative_net_pnls,
+            color="black",
+            lw=1.2,
+            marker="o",
+            ms=3,
+            label="Net",
+        )
+        pnl_axes.plot(
+            numbers, list(accumulate(pnls)), color="gray", lw=1, ls="--", label="Gross"
+        )
         pnl_axes.axhline(y=0, color="gray", lw=0.5)
 
         # ——————————————————————————————————————————————————————————————————————————————
@@ -260,11 +273,8 @@ def generate_journey_charts(
         ):
             journey_axes.bar(
                 [roundtrip.number for roundtrip in group],
-                [
-                    (roundtrip.mfe - roundtrip.mae) / PRICE_SCALE_FACTOR
-                    for roundtrip in group
-                ],
-                bottom=[roundtrip.mae / PRICE_SCALE_FACTOR for roundtrip in group],
+                [(roundtrip.mfe - roundtrip.mae) / SCALE_FACTOR for roundtrip in group],
+                bottom=[roundtrip.mae / SCALE_FACTOR for roundtrip in group],
                 width=[widths[roundtrip] for roundtrip in group],
                 color=color,
                 alpha=0.7,
@@ -286,8 +296,8 @@ def generate_journey_charts(
             zorder=5,
             label="PnL",
         )
-        winner_pnls = [roundtrip.pnl / PRICE_SCALE_FACTOR for roundtrip in winners]
-        loser_pnls = [roundtrip.pnl / PRICE_SCALE_FACTOR for roundtrip in losers]
+        winner_pnls = [roundtrip.pnl / SCALE_FACTOR for roundtrip in winners]
+        loser_pnls = [roundtrip.pnl / SCALE_FACTOR for roundtrip in losers]
         if winner_pnls:
             journey_axes.axhline(
                 y=mean(winner_pnls),
@@ -320,24 +330,33 @@ def generate_journey_charts(
         # ——————————————————————————————————————————————————————————————————————————————
         # Write the summary statistics into an info box on each panel
 
-        equity = [0.0, *cumulative_pnls]
+        equity = [0.0, *cumulative_net_pnls]
         max_drawdown = max(
             peak - value for peak, value in zip(accumulate(equity, max), equity)
+        )
+        total_costs = (
+            sum(roundtrip.costs for roundtrip in instrument_roundtrips) / SCALE_FACTOR
         )
         win_rate = len(winners) / len(instrument_roundtrips)
         winner_bars = [roundtrip.holding_period_in_bars for roundtrip in winners]
         loser_bars = [roundtrip.holding_period_in_bars for roundtrip in losers]
-        mfes = [
-            roundtrip.mfe / PRICE_SCALE_FACTOR for roundtrip in instrument_roundtrips
-        ]
-        maes = [
-            roundtrip.mae / PRICE_SCALE_FACTOR for roundtrip in instrument_roundtrips
-        ]
+        mfes = [roundtrip.mfe / SCALE_FACTOR for roundtrip in instrument_roundtrips]
+        maes = [roundtrip.mae / SCALE_FACTOR for roundtrip in instrument_roundtrips]
 
         pnl_info = "\n".join(
             [
-                f"Total         {sum(pnls):+,.2f}",
-                f"Average       {mean(pnls):+,.2f}",
+                f"Net total     {sum(net_pnls):+,.2f}",
+                f"Costs         {total_costs:,.2f}",
+                f"Gross total   {sum(pnls):+,.2f}",
+                f"Avg net       {mean(net_pnls):+,.2f}",
+                f"Max drawdown  {max_drawdown:,.2f}",
+            ]
+        )
+        journey_info = "\n".join(
+            [
+                f"Roundtrips    {len(instrument_roundtrips)}",
+                f"Winners       {len(winners)} ({win_rate:.1%})",
+                f"Losers        {len(losers)}",
                 (
                     f"Avg winner    {mean(winner_pnls):+,.2f}"
                     if winner_pnls
@@ -350,14 +369,6 @@ def generate_journey_charts(
                 ),
                 f"Best          {max(pnls):+,.2f}",
                 f"Worst         {min(pnls):+,.2f}",
-                f"Max drawdown  {max_drawdown:,.2f}",
-            ]
-        )
-        journey_info = "\n".join(
-            [
-                f"Roundtrips    {len(instrument_roundtrips)}",
-                f"Winners       {len(winners)} ({win_rate:.1%})",
-                f"Losers        {len(losers)}",
                 f"Avg MFE       {mean(mfes):+,.2f}",
                 f"Highest MFE   {max(mfes):+,.2f}",
                 f"Avg MAE       {mean(maes):+,.2f}",
@@ -379,8 +390,8 @@ def generate_journey_charts(
             ]
         )
 
-        # Each info box is the title of the panel's legend (which has entries on the
-        # journey panel only), so matplotlib places it where it covers the least data
+        # Each info box is the title of the panel's legend (which has no entries on the
+        # holding period panel), so matplotlib places it where it covers the least data
         for panel_axes, info in (
             (pnl_axes, pnl_info),
             (journey_axes, journey_info),
@@ -401,10 +412,13 @@ def generate_journey_charts(
         # Style the figure (axis labels, integer roundtrip numbers, title, spacing)
 
         pnl_axes.set_ylabel(f"Cumulative PnL ({instrument.currency})")
-        journey_axes.set_ylabel(f"PnL ({instrument.currency})")
+        journey_axes.set_ylabel(f"Gross PnL ({instrument.currency})")
         holding_axes.set_ylabel("Bars")
         holding_axes.set_xlabel("Roundtrip")
         holding_axes.xaxis.set_major_locator(MaxNLocator(integer=True))
+        # A fixed margin beyond the widest bar keeps the axis from reaching back to a
+        # roundtrip 0, which does not exist
+        holding_axes.set_xlim(numbers[0] - 0.75, numbers[-1] + 0.75)
         for panel_axes in (pnl_axes, journey_axes, holding_axes):
             panel_axes.grid(True, axis="y", alpha=0.3)
 

@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from ..domain.constants import PRICE_SCALE_FACTOR
+from ..domain.constants import SCALE_FACTOR
 from ..domain.instruments import InstrumentBase
 from ..domain.types import Quantity, ScaledMonetaryAmount, ScaledPrice
 
@@ -37,4 +37,4 @@ def ib_micro_emini(
     - NFA regulatory:   $0.011
     - Total:            $0.614
     """
-    return round(0.614 * PRICE_SCALE_FACTOR) * qty
+    return round(0.614 * SCALE_FACTOR) * qty

@@ -2,7 +2,7 @@
 System-wide constants.
 """
 
-PRICE_SCALE_FACTOR: int = 1_000_000_000
+SCALE_FACTOR: int = 1_000_000_000
 """
 Fixed-point scaling factor for `ScaledPrice` and `ScaledMonetaryAmount` values.
 

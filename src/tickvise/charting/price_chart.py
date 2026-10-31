@@ -17,7 +17,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import FancyBboxPatch
 from matplotlib.path import Path as MplPath
 
-from ..domain.constants import PRICE_SCALE_FACTOR
+from ..domain.constants import SCALE_FACTOR
 from ..domain.enums import TimeUnit, TradeSide
 from ..domain.events import (
     DomainEvents,
@@ -281,10 +281,10 @@ def generate_price_charts(
                 DAYS_PER_TIME_UNIT[bar.bar_interval.time_unit]
                 * bar.bar_interval.multiplier
             )
-            bar_open = bar.open / PRICE_SCALE_FACTOR
-            bar_high = bar.high / PRICE_SCALE_FACTOR
-            bar_low = bar.low / PRICE_SCALE_FACTOR
-            bar_close = bar.close / PRICE_SCALE_FACTOR
+            bar_open = bar.open / SCALE_FACTOR
+            bar_high = bar.high / SCALE_FACTOR
+            bar_low = bar.low / SCALE_FACTOR
+            bar_close = bar.close / SCALE_FACTOR
 
             match chart_config.bar_style:
                 case BarStyle.CANDLESTICK:
@@ -388,9 +388,7 @@ def generate_price_charts(
                     indicator_update.source_bar.period_start / NS_PER_DAY
                 )
                 indicator_y.append(
-                    reading.value / PRICE_SCALE_FACTOR
-                    if reading.is_scaled
-                    else reading.value
+                    reading.value / SCALE_FACTOR if reading.is_scaled else reading.value
                 )
 
             indicator_axes = axes_by_plot_group[plot_config.plot_group]
@@ -451,14 +449,14 @@ def generate_price_charts(
                     * bar.bar_interval.multiplier
                 )
             else:
-                # No bars at all (fills-only instrument): only the fill's own time exists
+                # No bars (fills-only instrument): only the fill's own time exists
                 x = fill.timestamp / NS_PER_DAY
             fill_xs.append(x)
 
             is_buy = fill.trade_side is TradeSide.BUY
             price_axes.scatter(
                 x,
-                fill.fill_price / PRICE_SCALE_FACTOR,
+                fill.fill_price / SCALE_FACTOR,
                 marker=BUY_MARKER if is_buy else SELL_MARKER,
                 color="green" if is_buy else "red",
                 edgecolors="green" if is_buy else "red",
@@ -487,7 +485,7 @@ def generate_price_charts(
                 segment_x, segment_y = [], []
             if not is_flat:
                 segment_x.append(x)
-                segment_y.append(fill.position_cost_basis / PRICE_SCALE_FACTOR)
+                segment_y.append(fill.position_cost_basis / SCALE_FACTOR)
                 segment_is_long = fill.signed_position_size > 0
 
         # A position still open at the end of the data runs to the last bar
