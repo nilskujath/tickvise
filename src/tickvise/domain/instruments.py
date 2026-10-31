@@ -5,7 +5,7 @@ An instrument specification carries enough information to uniquely identify a se
 or derivative contract.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .enums import OptionRight
 from .types import (
@@ -30,12 +30,16 @@ class InstrumentBase:
             Exchange or trading venue the instrument is listed on.
         currency:
             Currency the instrument is denominated in.
+        multiplier:
+            How much one point of price movement of one unit of the instrument is
+                worth in the instrument's currency.
     """
 
     # fmt: off
     ticker:     Ticker
     exchange:   Exchange
     currency:   Currency
+    multiplier: Multiplier
     # fmt: on
 
 
@@ -57,9 +61,14 @@ class Instrument:
                 Exchange the equity security is listed on.
             currency:
                 Currency the equity security is denominated in.
+            multiplier:
+                How much one point of price movement of one share is worth in its
+                    currency.
+                Always 1, since the price is quoted per share; not a constructor
+                    parameter.
         """
 
-        pass
+        multiplier: Multiplier = field(default=1, init=False)
 
     @dataclass(frozen=True, kw_only=True)
     class Future(InstrumentBase):
@@ -76,15 +85,12 @@ class Instrument:
             expiry:
                 The futures contract's expiration date.
             multiplier:
-                The futures contract's point multiplier (e.g., 2 for MNQ, 50 for ES).
-                Represents how much one point of price movement is worth in the
-                denominated currency.
+                How much one point of price movement of one futures contract is worth
+                    in its currency.
+                Set by the contract specification (e.g., 2 for MNQ, 50 for ES).
         """
 
-        # fmt: off
-        expiry:     ExpirationDate
-        multiplier: Multiplier
-        # fmt: on
+        expiry: ExpirationDate
 
     @dataclass(frozen=True, kw_only=True)
     class Option(InstrumentBase):
@@ -105,15 +111,17 @@ class Instrument:
             right:
                 Call or put.
             multiplier:
-                Number of units of the underlying that one option contract controls
-                (e.g., 100 for standard US equity options).
+                How much one point of price movement of one option contract is worth
+                    in its currency.
+                Equals the number of units of the underlying that one option contract
+                    controls, since the option price is quoted per unit (e.g., 100 for
+                    standard US equity options).
         """
 
         # fmt: off
         expiry:     ExpirationDate
         strike:     StrikePrice
         right:      OptionRight
-        multiplier: Multiplier
         # fmt: on
 
     @dataclass(frozen=True, kw_only=True)
@@ -135,14 +143,15 @@ class Instrument:
             right:
                 Call or put.
             multiplier:
-                Contract point multiplier of the underlying future.
-                Represents how much one point of price movement is worth in the
-                denominated currency.
+                How much one point of price movement of one option contract is worth
+                    in its currency.
+                Equals the point multiplier of the underlying futures contract when, as
+                    usual, one option contract is exercised into one futures contract
+                    and quoted in the same points (e.g., 50 for options on ES futures).
         """
 
         # fmt: off
         expiry:     ExpirationDate
         strike:     StrikePrice
         right:      OptionRight
-        multiplier: Multiplier
         # fmt: on
